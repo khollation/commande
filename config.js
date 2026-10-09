@@ -20,5 +20,8 @@ export const SHOP = {
   wero: "COMPLÈTE ICI ton numéro ou identifiant Wero"
 };
 
+// Catégories affichées sur le site, dans cet ordre
+export const CATEGORIES = ["Boissons", "Snacks", "Formules"];
+
 export const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 export const eur = c => (c / 100).toFixed(2).replace(".", ",") + " €";
