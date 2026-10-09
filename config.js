@@ -16,7 +16,7 @@ export const auth = getAuth(app);
 
 // À MODIFIER : nom affiché et info de paiement Wero
 export const SHOP = {
-  name: "Le Snack de l'internat",
+  name: "La Khôllation",
   wero: "COMPLÈTE ICI ton numéro ou identifiant Wero"
 };
 
