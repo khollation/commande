@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>
-  La Khôllation</title>
+<title>La Khôllation</title>
+<link rel="icon" href="logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
@@ -26,7 +26,7 @@
     <label for="room">Chambre</label><input id="room" name="room" type="text" maxlength="10" required>
     <label for="time">Heure de livraison souhaitée</label><input id="time" name="time" type="time" required>
     <p class="note">Indicatif : il peut y avoir un peu de retard.</p>
-    <label for="comment">Commentaire (facultatif)</label><textarea id="comment" name="comment" maxlength="200" rows="2" placeholder="Une précision ?"></textarea>    
+    <label for="comment">Commentaire (facultatif)</label><textarea id="comment" name="comment" maxlength="200" rows="2" placeholder="Une précision ? Ex : sans glaçons, je suis en salle d'étude…"></textarea>    
     <div class="radios"><label style="opacity:.5"><input type="radio" name="payment" value="wero" disabled> Wero (momentanément indisponible)</label><label><input type="radio" name="payment" value="especes" checked> Je paie en espèces</label></div>
     <p class="msg" id="err" role="alert"></p>
     <div style="display:flex;gap:.5rem;justify-content:flex-end"><button type="button" class="btn alt" id="cancel">Retour</button><button class="btn" id="send">Envoyer la commande</button></div>
@@ -35,7 +35,7 @@
 </dialog>
 
 <script type="module">
-import { db, SHOP, esc, eur } from "./config.js";
+import { db, SHOP, esc, eur, CATEGORIES } from "./config.js";
 import { collection, onSnapshot, serverTimestamp, query, orderBy, doc, runTransaction } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 const $ = s => document.querySelector(s);
@@ -61,16 +61,23 @@ function lines() {
 }
 const totalCents = () => lines().reduce((s, i) => s + i.priceCents * i.qty, 0);
 
-function render() {
-  $("#list").innerHTML = products.length ? products.map(p => {
-    const q = cart[p.id] || 0, out = p.stock < 1;
-    return `<div class="item">
+function itemHtml(p) {
+  const q = cart[p.id] || 0, out = p.stock < 1;
+  return `<div class="item">
       <div class="emoji">${p.image ? `<img class="pimg" src="${esc(p.image)}" alt="">` : esc(p.emoji || "🥤")}</div>
       <div><div class="name">${esc(p.name)}</div><div class="stock ${p.stock <= 3 ? "low" : ""}">${out ? "Épuisé" : p.stock + " en stock"}</div></div>
       <div class="right"><span class="price">${eur(p.priceCents)}</span>
         <div class="step">${out ? "" : `<button data-id="${p.id}" data-d="-1" ${q ? "" : "disabled"} aria-label="Retirer ${esc(p.name)}">−</button><span>${q}</span><button data-id="${p.id}" data-d="1" ${q >= p.stock ? "disabled" : ""} aria-label="Ajouter ${esc(p.name)}">+</button>`}</div>
       </div></div>`;
-  }).join("") : "<p>Aucun produit pour le moment, repasse bientôt.</p>";
+}
+
+function render() {
+  const groups = [...CATEGORIES, "Autres"]
+    .map(c => ({ c, list: products.filter(p => (CATEGORIES.includes(p.category) ? p.category : "Autres") === c) }))
+    .filter(g => g.list.length);
+  $("#list").innerHTML = groups.length
+    ? groups.map(g => `<h2 class="cat">${esc(g.c)}</h2>` + g.list.map(itemHtml).join("")).join("")
+    : "<p>Aucun produit pour le moment, repasse bientôt.</p>";
   const n = lines().reduce((s, i) => s + i.qty, 0);
   $("#count").textContent = n + (n > 1 ? " articles" : " article");
   $("#total").textContent = eur(totalCents());
@@ -107,11 +114,6 @@ $("#form").onsubmit = async e => {
       snaps.forEach((s, k) => tx.update(refs[k], { stock: s.data().stock - items[k].qty }));
       tx.set(doc(collection(db, "orders")), { name, room, payment, items, totalCents: total, status: "nouvelle", paid: false, deliveryTime, comment, createdAt: serverTimestamp() });
     });
-    fetch("https://ntfy.sh/khollation-k7x2q9m4pz81", {
-      method: "POST",
-      headers: { Title: "Nouvelle commande", Priority: "high" },
-      body: items.reduce((s, i) => s + i.qty, 0) + " article(s) · " + eur(total) + " · livraison " + deliveryTime
-    }).catch(() => {});    
     try { localStorage.setItem("snack_name", name); localStorage.setItem("snack_room", room); } catch {}
     cart = {}; render();
     $("#form").hidden = true; $("#done").hidden = false;
