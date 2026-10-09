@@ -79,6 +79,8 @@ function renderOrders() {
     return `<div class="order ${o.status}">
       <div class="top"><span>${esc(o.name)} · ch. ${esc(o.room)}</span><span>${eur(o.totalCents)}</span></div>
       <div class="stock">${date} · ${o.payment === "wero" ? "Wero" : "Espèces"}</div>
+      <div class="deliv">🕒 Livraison souhaitée : <strong>${esc(o.deliveryTime || "non précisée")}</strong></div>
+      ${o.comment ? `<div class="comment">💬 ${esc(o.comment)}</div>` : ""}      
       <ul>${o.items.map(i => `<li>${i.qty} × ${esc(i.name)}</li>`).join("")}</ul>
       <div class="chips"><span class="tag">${esc(o.status)}</span><span class="tag ${o.paid ? "ok" : ""}">${o.paid ? "payée" : "non payée"}</span></div>
       <div class="chips">
