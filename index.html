@@ -25,6 +25,9 @@
     <div id="recap"></div>
     <label for="name">Prénom</label><input id="name" name="name" type="text" maxlength="30" required>
     <label for="room">Chambre</label><input id="room" name="room" type="text" maxlength="10" required>
+    <label for="time">Heure de livraison souhaitée</label><input id="time" name="time" type="time" required>
+    <p class="note">Indicatif : il peut y avoir un peu de retard.</p>
+    <label for="comment">Commentaire (facultatif)</label><textarea id="comment" name="comment" maxlength="200" rows="2" placeholder="Une précision ?"></textarea>    
     <div class="radios"><label style="opacity:.5"><input type="radio" name="payment" value="wero" disabled> Wero (momentanément indisponible)</label><label><input type="radio" name="payment" value="especes" checked> Je paie en espèces</label></div>
     <p class="msg" id="err" role="alert"></p>
     <div style="display:flex;gap:.5rem;justify-content:flex-end"><button type="button" class="btn alt" id="cancel">Retour</button><button class="btn" id="send">Envoyer la commande</button></div>
@@ -93,6 +96,7 @@ $("#form").onsubmit = async e => {
   e.preventDefault();
   const f = new FormData(e.target), items = lines(), total = totalCents();
   const name = f.get("name").trim(), room = f.get("room").trim(), payment = f.get("payment");
+  const deliveryTime = f.get("time"), comment = f.get("comment").trim();
   $("#send").disabled = true;
   try {
     await runTransaction(db, async tx => {
@@ -102,12 +106,12 @@ $("#form").onsubmit = async e => {
         if (!s.exists() || s.data().stock < items[k].qty) throw new Error("STOCK:" + items[k].name);
       });
       snaps.forEach((s, k) => tx.update(refs[k], { stock: s.data().stock - items[k].qty }));
-      tx.set(doc(collection(db, "orders")), { name, room, payment, items, totalCents: total, status: "nouvelle", paid: false, createdAt: serverTimestamp() });
+      tx.set(doc(collection(db, "orders")), { name, room, payment, items, totalCents: total, status: "nouvelle", paid: false, deliveryTime, comment, createdAt: serverTimestamp() });
     });
     try { localStorage.setItem("snack_name", name); localStorage.setItem("snack_room", room); } catch {}
     cart = {}; render();
     $("#form").hidden = true; $("#done").hidden = false;
-    $("#done").innerHTML = `<h2 style="margin-top:0">Commande envoyée ✅</h2><p>Total à payer : <strong>${eur(total)}</strong></p><p>${payment === "wero" ? "Paie en Wero : " + esc(SHOP.wero) : "Prépare ton paiement en espèces, de préférence l'appoint."}</p><p>Tu seras livré dans ta chambre (${esc(room)}).</p><button class="btn" id="ok">Fermer</button>`;
+    $("#done").innerHTML = `<h2 style="margin-top:0">Commande envoyée ✅</h2><p>Total à payer : <strong>${eur(total)}</strong></p><p>${payment === "wero" ? "Paie en Wero : " + esc(SHOP.wero) : "Prépare ton paiement en espèces, de préférence l'appoint."}</p><p>Livraison dans ta chambre (${esc(room)}) vers <strong>${esc(deliveryTime)}</strong>, avec un éventuel petit retard.</p><button class="btn" id="ok">Fermer</button>`;
     $("#ok").onclick = () => $("#dlg").close();
   } catch (err) {
     $("#err").textContent = String(err.message).startsWith("STOCK:")
