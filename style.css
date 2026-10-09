@@ -70,3 +70,6 @@ input[type=time]{width:100%;padding:.65rem .75rem;border:2px solid var(--line);b
 .deliv{margin:.35rem 0 0}
 .comment{margin:.4rem 0;padding:.5rem .65rem;background:#FFF6D6;border-radius:.5rem;font-size:.95rem}
 dialog{max-height:92vh}
+h2.cat{margin:1.2rem 0 .1rem;font-size:1.25rem;display:flex;align-items:center;gap:.6rem}
+h2.cat::after{content:"";flex:1;height:2px;background:var(--line);border-radius:2px}
+select{width:100%;padding:.45rem .6rem;border:2px solid var(--line);border-radius:.6rem;background:#fff;color:var(--ink)}
