@@ -107,6 +107,11 @@ $("#form").onsubmit = async e => {
       snaps.forEach((s, k) => tx.update(refs[k], { stock: s.data().stock - items[k].qty }));
       tx.set(doc(collection(db, "orders")), { name, room, payment, items, totalCents: total, status: "nouvelle", paid: false, deliveryTime, comment, createdAt: serverTimestamp() });
     });
+    fetch("https://ntfy.sh/khollation-k7x2q9m4pz81", {
+      method: "POST",
+      headers: { Title: "Nouvelle commande", Priority: "high" },
+      body: items.reduce((s, i) => s + i.qty, 0) + " article(s) · " + eur(total) + " · livraison " + deliveryTime
+    }).catch(() => {});    
     try { localStorage.setItem("snack_name", name); localStorage.setItem("snack_room", room); } catch {}
     cart = {}; render();
     $("#form").hidden = true; $("#done").hidden = false;
