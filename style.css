@@ -63,3 +63,10 @@ input[type=text]:focus,input[type=email]:focus,input[type=password]:focus,input[
 .prow input{padding:.4rem}
 @media(max-width:34rem){.prow{grid-template-columns:2.5rem 1fr 4.5rem 4rem}.prow .btn{grid-column:span 2}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+textarea{width:100%;padding:.65rem .75rem;border:2px solid var(--line);border-radius:.6rem;background:#fff;color:var(--ink);resize:vertical}
+textarea:focus,input[type=time]:focus{border-color:var(--blue);outline:0}
+input[type=time]{width:100%;padding:.65rem .75rem;border:2px solid var(--line);border-radius:.6rem;background:#fff;color:var(--ink)}
+.note{margin:.3rem 0 0;font-size:.85rem;color:var(--mute)}
+.deliv{margin:.35rem 0 0}
+.comment{margin:.4rem 0;padding:.5rem .65rem;background:#FFF6D6;border-radius:.5rem;font-size:.95rem}
+dialog{max-height:92vh}
