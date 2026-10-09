@@ -30,6 +30,7 @@
       <input id="ap" type="number" step="0.01" min="0" placeholder="Prix €" required aria-label="Prix en euros">
       <input id="as" type="number" min="0" placeholder="Stock" required aria-label="Stock">
       <button class="btn sm">Ajouter</button>
+      <select id="ac" aria-label="Catégorie" style="grid-column:1/-1"></select>
       <label style="grid-column:1/-1;margin:0">Image (optionnelle)<input id="ai" type="file" accept="image/*"></label>
     </form>
     <div id="products"></div>
@@ -37,12 +38,13 @@
 </main>
 
 <script type="module">
-import { db, auth, esc, eur } from "./config.js";
+import { db, auth, esc, eur, CATEGORIES } from "./config.js";
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { collection, onSnapshot, query, orderBy, limit, doc, updateDoc, deleteDoc, addDoc, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 const $ = s => document.querySelector(s);
 let orders = [], products = [], unsubs = [], ctx, first = true;
+$("#ac").innerHTML = CATEGORIES.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
 
 $("#login").onsubmit = async e => {
   e.preventDefault(); $("#lerr").textContent = "";
@@ -132,7 +134,8 @@ function renderProducts() {
     <input type="number" step="0.01" min="0" value="${(p.priceCents / 100).toFixed(2)}" data-f="price" aria-label="Prix de ${esc(p.name)}">
     <input type="number" min="0" value="${p.stock}" data-f="stock" aria-label="Stock de ${esc(p.name)}">
     <button class="btn sm" data-p="save">Enregistrer</button>
-    <button class="btn sm red" data-p="del">Supprimer</button></div>`).join("");
+    <button class="btn sm red" data-p="del">Supprimer</button>
+    <select data-f="cat" style="grid-column:1/-1" aria-label="Catégorie de ${esc(p.name)}">${["", ...CATEGORIES].map(c => `<option value="${esc(c)}" ${(p.category || "") === c ? "selected" : ""}>${c ? esc(c) : "Autres (sans catégorie)"}</option>`).join("")}</select></div>`).join("");
 }
 
 $("#products").addEventListener("click", async e => {
@@ -145,16 +148,18 @@ $("#products").addEventListener("click", async e => {
 });
 
 $("#products").addEventListener("change", async e => {
-  const inp = e.target.closest('[data-f="img"]'); if (!inp || !inp.files[0]) return;
-  try { await updateDoc(doc(db, "products", inp.closest(".prow").dataset.id), { image: await resize(inp.files[0]) }); }
-  catch (err) { alert("Image impossible : " + err.message); }
+  const el = e.target, ref = () => doc(db, "products", el.closest(".prow").dataset.id);
+  try {
+    if (el.dataset.f === "img" && el.files[0]) await updateDoc(ref(), { image: await resize(el.files[0]) });
+    else if (el.dataset.f === "cat") await updateDoc(ref(), { category: el.value });
+  } catch (err) { alert("Modification impossible : " + err.message); }
 });
   
 $("#add").onsubmit = async e => {
   e.preventDefault();
   try {
     const file = $("#ai").files[0], image = file ? await resize(file) : "";
-    await addDoc(collection(db, "products"), { emoji: $("#ae").value.trim() || "🥤", name: $("#an").value.trim(), priceCents: Math.round($("#ap").value * 100), stock: parseInt($("#as").value, 10) || 0, image });
+    await addDoc(collection(db, "products"), { emoji: $("#ae").value.trim() || "🥤", name: $("#an").value.trim(), priceCents: Math.round($("#ap").value * 100), stock: parseInt($("#as").value, 10) || 0, image, category: $("#ac").value });
     e.target.reset();
   } catch (err) { alert("Ajout impossible : " + err.message); }
 };
