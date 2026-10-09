@@ -1,0 +1,46 @@
+:root{--bg:#F2F5F7;--ink:#13203A;--blue:#2447E8;--sticker:#FFD23F;--red:#D93A2B;--line:#D5DCE3;--mute:#51607A;--ok:#1E8A55}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 "Bricolage Grotesque",system-ui,sans-serif;padding-bottom:6rem}
+header,main{max-width:40rem;margin:0 auto;padding:0 1rem}
+header{padding-top:1.5rem}
+h1{font-size:2.1rem;line-height:1.05;letter-spacing:-.02em;margin:0 0 .25rem}
+h2{font-size:1.3rem;margin:2rem 0 .5rem}
+p.sub{margin:0 0 1rem;color:var(--mute)}
+button,input,select{font:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.item{display:grid;grid-template-columns:3.5rem 1fr auto;gap:.75rem;align-items:center;padding:.9rem 0;border-bottom:1px solid var(--line)}
+.emoji{font-size:2rem;text-align:center}
+.name{font-weight:700}
+.stock{font-size:.85rem;color:var(--mute)}
+.stock.low{color:var(--red);font-weight:600}
+.right{display:flex;flex-direction:column;align-items:flex-end;gap:.4rem}
+.price{background:var(--sticker);font-weight:800;padding:.05rem .5rem;border-radius:.25rem;transform:rotate(-2deg)}
+.step{display:flex;align-items:center;gap:.5rem;min-width:7rem;justify-content:flex-end}
+.step button{width:2.4rem;height:2.4rem;border-radius:50%;border:2px solid var(--ink);background:#fff;font-weight:700}
+.step button:disabled{opacity:.3;cursor:default}
+.btn{background:var(--blue);color:#fff;border:0;border-radius:.5rem;padding:.65rem 1.1rem;font-weight:700}
+.btn.alt{background:#fff;color:var(--ink);border:2px solid var(--ink)}
+.btn.red{background:var(--red)}
+.btn.sm{padding:.35rem .7rem;font-size:.9rem}
+.btn:disabled{opacity:.4;cursor:default}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--ink);color:#fff;padding:.8rem 1rem;display:flex;justify-content:space-between;align-items:center;gap:1rem}
+.bar .btn{background:var(--sticker);color:var(--ink)}
+dialog{border:0;border-radius:.75rem;padding:1.25rem;width:min(92vw,26rem)}
+dialog::backdrop{background:rgba(19,32,58,.6)}
+label{display:block;font-weight:600;margin:.8rem 0 .25rem}
+input[type=text],input[type=email],input[type=password],input[type=number]{width:100%;padding:.6rem;border:2px solid var(--line);border-radius:.5rem;background:#fff}
+.radios label{display:flex;gap:.5rem;align-items:center;font-weight:500;margin:.3rem 0}
+.msg{color:var(--red);font-weight:600}
+.order{background:#fff;border:2px solid var(--line);border-radius:.6rem;padding:.8rem;margin:.7rem 0}
+.order.nouvelle{border-color:var(--blue)}
+.order .top{display:flex;justify-content:space-between;gap:.5rem;font-weight:700}
+.order ul{margin:.4rem 0;padding-left:1.1rem}
+.chips{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.5rem}
+.tag{font-size:.8rem;font-weight:700;padding:.1rem .5rem;border-radius:1rem;background:var(--line)}
+.tag.ok{background:var(--ok);color:#fff}
+.prow{display:grid;grid-template-columns:2.5rem 1fr 5rem 4.5rem auto auto;gap:.4rem;align-items:center;padding:.4rem 0;border-bottom:1px solid var(--line)}
+.prow input{padding:.35rem}
+@media(max-width:34rem){.prow{grid-template-columns:2.5rem 1fr 4.5rem 4rem}.prow .btn{grid-column:span 2}}
+.pimg{width:100%;aspect-ratio:1;object-fit:cover;border-radius:.5rem;display:block}
+.thumb{display:block;cursor:pointer}

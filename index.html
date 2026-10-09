@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le Snack de l'internat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1 id="title">Le Snack de l'internat</h1>
+  <p class="sub">Choisis tes produits, commande, puis paie à la livraison (Wero ou espèces).</p>
+</header>
+<main><div id="list" aria-live="polite">Chargement…</div></main>
+
+<div class="bar"><div><strong id="count">0 article</strong> · <span id="total">0,00 €</span></div><button class="btn" id="open" disabled>Commander</button></div>
+
+<dialog id="dlg">
+  <form id="form">
+    <h2 style="margin-top:0">Ta commande</h2>
+    <div id="recap"></div>
+    <label for="name">Prénom</label><input id="name" name="name" type="text" maxlength="30" required>
+    <label for="room">Chambre</label><input id="room" name="room" type="text" maxlength="10" required>
+    <div class="radios"><label style="opacity:.5"><input type="radio" name="payment" value="wero" disabled> Wero (momentanément indisponible)</label><label><input type="radio" name="payment" value="especes" checked> Je paie en espèces</label></div>
+    <p class="msg" id="err" role="alert"></p>
+    <div style="display:flex;gap:.5rem;justify-content:flex-end"><button type="button" class="btn alt" id="cancel">Retour</button><button class="btn" id="send">Envoyer la commande</button></div>
+  </form>
+  <div id="done" hidden></div>
+</dialog>
+
+<script type="module">
+import { db, SHOP, esc, eur } from "./config.js";
+import { collection, onSnapshot, serverTimestamp, query, orderBy, doc, runTransaction } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+const $ = s => document.querySelector(s);
+let products = [], cart = {};
+$("#title").textContent = SHOP.name;
+
+try { $("#name").value = localStorage.getItem("snack_name") || ""; $("#room").value = localStorage.getItem("snack_room") || ""; } catch {}
+
+onSnapshot(query(collection(db, "products"), orderBy("name")), snap => {
+  products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  for (const id in cart) {
+    const p = products.find(x => x.id === id);
+    if (!p || p.stock < 1) delete cart[id]; else cart[id] = Math.min(cart[id], p.stock);
+  }
+  render();
+}, () => { $("#list").textContent = "Impossible de charger les produits. Recharge la page dans un instant."; });
+
+function lines() {
+  return Object.entries(cart).filter(([, q]) => q > 0).map(([id, qty]) => {
+    const p = products.find(x => x.id === id);
+    return { id, name: p.name, priceCents: p.priceCents, qty };
+  });
+}
+const totalCents = () => lines().reduce((s, i) => s + i.priceCents * i.qty, 0);
+
+function render() {
+  $("#list").innerHTML = products.length ? products.map(p => {
+    const q = cart[p.id] || 0, out = p.stock < 1;
+    return `<div class="item">
+      <div class="emoji">${p.image ? `<img class="pimg" src="${esc(p.image)}" alt="">` : esc(p.emoji || "🥤")}</div>
+      <div><div class="name">${esc(p.name)}</div><div class="stock ${p.stock <= 3 ? "low" : ""}">${out ? "Épuisé" : p.stock + " en stock"}</div></div>
+      <div class="right"><span class="price">${eur(p.priceCents)}</span>
+        <div class="step">${out ? "" : `<button data-id="${p.id}" data-d="-1" ${q ? "" : "disabled"} aria-label="Retirer ${esc(p.name)}">−</button><span>${q}</span><button data-id="${p.id}" data-d="1" ${q >= p.stock ? "disabled" : ""} aria-label="Ajouter ${esc(p.name)}">+</button>`}</div>
+      </div></div>`;
+  }).join("") : "<p>Aucun produit pour le moment, repasse bientôt.</p>";
+  const n = lines().reduce((s, i) => s + i.qty, 0);
+  $("#count").textContent = n + (n > 1 ? " articles" : " article");
+  $("#total").textContent = eur(totalCents());
+  $("#open").disabled = n === 0;
+}
+
+$("#list").addEventListener("click", e => {
+  const b = e.target.closest("button[data-id]"); if (!b) return;
+  const id = b.dataset.id, p = products.find(x => x.id === id);
+  cart[id] = Math.max(0, Math.min(p.stock, (cart[id] || 0) + Number(b.dataset.d)));
+  render();
+});
+
+$("#open").onclick = () => {
+  $("#recap").innerHTML = "<ul>" + lines().map(i => `<li>${i.qty} × ${esc(i.name)}</li>`).join("") + `</ul><p><strong>Total : ${eur(totalCents())}</strong></p>`;
+  $("#err").textContent = ""; $("#form").hidden = false; $("#done").hidden = true;
+  $("#dlg").showModal();
+};
+$("#cancel").onclick = () => $("#dlg").close();
+
+$("#form").onsubmit = async e => {
+  e.preventDefault();
+  const f = new FormData(e.target), items = lines(), total = totalCents();
+  const name = f.get("name").trim(), room = f.get("room").trim(), payment = f.get("payment");
+  $("#send").disabled = true;
+  try {
+    await runTransaction(db, async tx => {
+      const refs = items.map(i => doc(db, "products", i.id));
+      const snaps = await Promise.all(refs.map(r => tx.get(r)));
+      snaps.forEach((s, k) => {
+        if (!s.exists() || s.data().stock < items[k].qty) throw new Error("STOCK:" + items[k].name);
+      });
+      snaps.forEach((s, k) => tx.update(refs[k], { stock: s.data().stock - items[k].qty }));
+      tx.set(doc(collection(db, "orders")), { name, room, payment, items, totalCents: total, status: "nouvelle", paid: false, createdAt: serverTimestamp() });
+    });
+    try { localStorage.setItem("snack_name", name); localStorage.setItem("snack_room", room); } catch {}
+    cart = {}; render();
+    $("#form").hidden = true; $("#done").hidden = false;
+    $("#done").innerHTML = `<h2 style="margin-top:0">Commande envoyée ✅</h2><p>Total à payer : <strong>${eur(total)}</strong></p><p>${payment === "wero" ? "Paie en Wero : " + esc(SHOP.wero) : "Prépare ton paiement en espèces, de préférence l'appoint."}</p><p>Tu seras livré dans ta chambre (${esc(room)}).</p><button class="btn" id="ok">Fermer</button>`;
+    $("#ok").onclick = () => $("#dlg").close();
+  } catch (err) {
+    $("#err").textContent = String(err.message).startsWith("STOCK:")
+      ? "Désolé, « " + err.message.slice(6) + " » vient d'être épuisé ou n'a plus assez de stock. Vérifie ton panier."
+      : "La commande n'est pas partie. Vérifie ta connexion et réessaie.";
+  }
+  $("#send").disabled = false;
+};
+</script>
+</body>
+</html>

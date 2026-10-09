@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Admin · Commandes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body style="padding-bottom:2rem">
+<header><h1>Admin</h1></header>
+<main>
+  <form id="login">
+    <label for="em">E-mail</label><input id="em" type="email" required autocomplete="username">
+    <label for="pw">Mot de passe</label><input id="pw" type="password" required autocomplete="current-password">
+    <p class="msg" id="lerr" role="alert"></p>
+    <button class="btn">Se connecter</button>
+  </form>
+
+  <div id="panel" hidden>
+    <button class="btn alt sm" id="out">Se déconnecter</button>
+    <h2>Commandes</h2>
+    <div id="orders"></div>
+    <h2>Produits</h2>
+    <form id="add" class="prow" style="border:0">
+      <input id="ae" type="text" placeholder="🥤" maxlength="4" aria-label="Emoji">
+      <input id="an" type="text" placeholder="Nom du produit" required aria-label="Nom">
+      <input id="ap" type="number" step="0.01" min="0" placeholder="Prix €" required aria-label="Prix en euros">
+      <input id="as" type="number" min="0" placeholder="Stock" required aria-label="Stock">
+      <button class="btn sm">Ajouter</button>
+      <label style="grid-column:1/-1;margin:0">Image (optionnelle)<input id="ai" type="file" accept="image/*"></label>
+    </form>
+    <div id="products"></div>
+  </div>
+</main>
+
+<script type="module">
+import { db, auth, esc, eur } from "./config.js";
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { collection, onSnapshot, query, orderBy, limit, doc, updateDoc, deleteDoc, addDoc, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+const $ = s => document.querySelector(s);
+let orders = [], products = [], unsubs = [], ctx, first = true;
+
+$("#login").onsubmit = async e => {
+  e.preventDefault(); $("#lerr").textContent = "";
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  try { await signInWithEmailAndPassword(auth, $("#em").value, $("#pw").value); }
+  catch { $("#lerr").textContent = "E-mail ou mot de passe incorrect."; }
+};
+$("#out").onclick = () => signOut(auth);
+
+onAuthStateChanged(auth, user => {
+  unsubs.forEach(u => u()); unsubs = []; first = true;
+  $("#login").hidden = !!user; $("#panel").hidden = !user;
+  if (!user) return;
+  unsubs.push(onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(100)), snap => {
+    orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (!first && snap.docChanges().some(c => c.type === "added" && !c.doc.metadata.hasPendingWrites)) beep();
+    first = false; renderOrders();
+  }));
+  unsubs.push(onSnapshot(query(collection(db, "products"), orderBy("name")), snap => {
+    products = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderProducts();
+  }));
+});
+
+function beep() {
+  try { const o = ctx.createOscillator(); o.frequency.value = 880; o.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 0.3); } catch {}
+}
+
+function renderOrders() {
+  const n = orders.filter(o => o.status === "nouvelle").length;
+  document.title = (n ? `(${n}) ` : "") + "Admin · Commandes";
+  $("#orders").innerHTML = orders.length ? orders.map(o => {
+    const date = o.createdAt ? o.createdAt.toDate().toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "…";
+    const btn = (act, label, cls = "") => `<button class="btn sm ${cls}" data-act="${act}" data-id="${o.id}">${label}</button>`;
+    return `<div class="order ${o.status}">
+      <div class="top"><span>${esc(o.name)} · ch. ${esc(o.room)}</span><span>${eur(o.totalCents)}</span></div>
+      <div class="stock">${date} · ${o.payment === "wero" ? "Wero" : "Espèces"}</div>
+      <ul>${o.items.map(i => `<li>${i.qty} × ${esc(i.name)}</li>`).join("")}</ul>
+      <div class="chips"><span class="tag">${esc(o.status)}</span><span class="tag ${o.paid ? "ok" : ""}">${o.paid ? "payée" : "non payée"}</span></div>
+      <div class="chips">
+        ${o.status === "nouvelle" ? btn("valider", "Valider") : ""}
+        ${o.status === "validée" ? btn("livrer", "Livrée") : ""}
+        ${o.status !== "annulée" ? btn("payer", o.paid ? "Marquer non payée" : "Marquer payée", "alt") : ""}
+        ${o.status === "nouvelle" || o.status === "validée" ? btn("annuler", "Annuler", "red") : ""}
+        ${o.status === "livrée" || o.status === "annulée" ? btn("suppr", "Supprimer", "alt") : ""}
+      </div></div>`;
+  }).join("") : "<p>Aucune commande pour le moment.</p>";
+}
+
+$("#orders").addEventListener("click", async e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const o = orders.find(x => x.id === b.dataset.id), act = b.dataset.act, ref = doc(db, "orders", o.id);
+  try {
+    if (act === "valider") await updateDoc(ref, { status: "validée" });
+    else if (act === "annuler") {
+      const batch = writeBatch(db);
+      o.items.forEach(i => batch.update(doc(db, "products", i.id), { stock: increment(i.qty) }));
+      batch.update(ref, { status: "annulée" });
+      await batch.commit();
+    }
+    else if (act === "livrer") await updateDoc(ref, { status: "livrée" });
+    else if (act === "payer") await updateDoc(ref, { paid: !o.paid });
+    else if (act === "suppr" && confirm("Supprimer cette commande ?")) await deleteDoc(ref);
+  } catch (err) { alert("Action impossible : " + err.message); }
+});
+
+function resize(file, size = 240) {
+  return new Promise((res, rej) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const c = document.createElement("canvas"); c.width = c.height = size;
+      const g = c.getContext("2d"), s = Math.min(img.width, img.height);
+      g.fillStyle = "#fff"; g.fillRect(0, 0, size, size);
+      g.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+      URL.revokeObjectURL(url); res(c.toDataURL("image/jpeg", 0.8));
+    };
+    img.onerror = () => rej(new Error("Image illisible"));
+    img.src = url;
+  });
+}
+
+function renderProducts() {
+  $("#products").innerHTML = products.map(p => `<div class="prow" data-id="${p.id}">
+    <label class="thumb" title="Changer l'image">${p.image ? `<img class="pimg" src="${esc(p.image)}" alt="">` : `<span class="emoji" style="font-size:1.5rem">${esc(p.emoji || "🥤")}</span>`}<input type="file" accept="image/*" data-f="img" hidden></label>
+    <span class="name">${esc(p.name)}</span>
+    <input type="number" step="0.01" min="0" value="${(p.priceCents / 100).toFixed(2)}" data-f="price" aria-label="Prix de ${esc(p.name)}">
+    <input type="number" min="0" value="${p.stock}" data-f="stock" aria-label="Stock de ${esc(p.name)}">
+    <button class="btn sm" data-p="save">Enregistrer</button>
+    <button class="btn sm red" data-p="del">Supprimer</button></div>`).join("");
+}
+
+$("#products").addEventListener("click", async e => {
+  const b = e.target.closest("[data-p]"); if (!b) return;
+  const row = b.closest(".prow"), ref = doc(db, "products", row.dataset.id);
+  try {
+    if (b.dataset.p === "save") await updateDoc(ref, { priceCents: Math.round(row.querySelector('[data-f="price"]').value * 100), stock: Math.max(0, parseInt(row.querySelector('[data-f="stock"]').value, 10) || 0) });
+    else if (confirm("Supprimer ce produit ?")) await deleteDoc(ref);
+  } catch (err) { alert("Action impossible : " + err.message); }
+});
+
+$("#products").addEventListener("change", async e => {
+  const inp = e.target.closest('[data-f="img"]'); if (!inp || !inp.files[0]) return;
+  try { await updateDoc(doc(db, "products", inp.closest(".prow").dataset.id), { image: await resize(inp.files[0]) }); }
+  catch (err) { alert("Image impossible : " + err.message); }
+});
+  
+$("#add").onsubmit = async e => {
+  e.preventDefault();
+  try {
+    const file = $("#ai").files[0], image = file ? await resize(file) : "";
+    await addDoc(collection(db, "products"), { emoji: $("#ae").value.trim() || "🥤", name: $("#an").value.trim(), priceCents: Math.round($("#ap").value * 100), stock: parseInt($("#as").value, 10) || 0, image });
+    e.target.reset();
+  } catch (err) { alert("Ajout impossible : " + err.message); }
+};
+</script>
+</body>
+</html>
