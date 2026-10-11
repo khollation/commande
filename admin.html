@@ -21,6 +21,20 @@
 
   <div id="panel" hidden>
     <button class="btn alt sm" id="out">Se déconnecter</button>
+    <h2>Ouverture</h2>
+    <div id="shopinfo" class="status"></div>
+    <div class="chips">
+      <button class="btn sm alt" id="m-auto">Automatique</button>
+      <button class="btn sm" id="m-open">Ouvrir maintenant</button>
+      <button class="btn sm red" id="m-closed">Fermer maintenant</button>
+    </div>
+    <div class="chips" style="align-items:center">
+      <span>Horaires du jour :</span>
+      <input id="cf" type="time" value="15:00" style="width:auto" aria-label="Ouverture">
+      <span>à</span>
+      <input id="ct" type="time" value="22:30" style="width:auto" aria-label="Fermeture">
+      <button class="btn sm" id="m-custom">Appliquer</button>
+    </div>    
     <h2>Commandes</h2>
     <div id="filters" class="chips" role="group" aria-label="Filtrer les commandes"></div>    
     <div id="orders"></div>
@@ -45,6 +59,22 @@ import { collection, onSnapshot, query, orderBy, limit, doc, updateDoc, deleteDo
 
 const $ = s => document.querySelector(s);
 let orders = [], products = [], unsubs = [], ctx, first = true;
+let settings = null;
+function renderShop() {
+  const s = shopStatus(settings);
+  $("#shopinfo").textContent = (s.open ? "🟢 " : "🔴 ") + s.text + (s.mode !== "auto" ? " (réglage manuel du jour)" : "");
+  $("#shopinfo").className = "status " + (s.open ? "open" : "closed");
+}
+setInterval(renderShop, 30000);
+const setMode = patch => setDoc(doc(db, "settings", "shop"), { date: todayKey(new Date()), ...patch }).catch(err => alert("Réglage impossible : " + err.message));
+$("#m-auto").onclick = () => setMode({ mode: "auto" });
+$("#m-open").onclick = () => setMode({ mode: "open" });
+$("#m-closed").onclick = () => setMode({ mode: "closed" });
+$("#m-custom").onclick = () => {
+  const from = $("#cf").value, to = $("#ct").value;
+  if (!from || !to || to <= from) return alert("L'heure de fermeture doit être après l'heure d'ouverture.");
+  setMode({ mode: "custom", from, to });
+};
 let filter = "toutes";
 const FILTERS = [
   ["toutes", "Toutes", () => true],
@@ -75,6 +105,7 @@ onAuthStateChanged(auth, user => {
   unsubs.push(onSnapshot(query(collection(db, "products"), orderBy("name")), snap => {
     products = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderProducts();
   }));
+  unsubs.push(onSnapshot(doc(db, "settings", "shop"), s => { settings = s.exists() ? s.data() : null; renderShop(); }));  
 });
 
 function beep() {
