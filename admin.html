@@ -22,6 +22,7 @@
   <div id="panel" hidden>
     <button class="btn alt sm" id="out">Se déconnecter</button>
     <h2>Commandes</h2>
+    <div id="filters" class="chips" role="group" aria-label="Filtrer les commandes"></div>    
     <div id="orders"></div>
     <h2>Produits</h2>
     <form id="add" class="prow" style="border:0">
@@ -44,6 +45,14 @@ import { collection, onSnapshot, query, orderBy, limit, doc, updateDoc, deleteDo
 
 const $ = s => document.querySelector(s);
 let orders = [], products = [], unsubs = [], ctx, first = true;
+let filter = "toutes";
+const FILTERS = [
+  ["toutes", "Toutes", () => true],
+  ["nouvelle", "Nouvelles", o => o.status === "nouvelle"],
+  ["validée", "À livrer", o => o.status === "validée"],
+  ["impayées", "Non payées", o => !o.paid && o.status !== "annulée"],
+  ["livrée", "Livrées", o => o.status === "livrée"]
+];
 $("#ac").innerHTML = CATEGORIES.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
 
 $("#login").onsubmit = async e => {
@@ -75,7 +84,9 @@ function beep() {
 function renderOrders() {
   const n = orders.filter(o => o.status === "nouvelle").length;
   document.title = (n ? `(${n}) ` : "") + "Admin · Commandes";
-  $("#orders").innerHTML = orders.length ? orders.map(o => {
+  $("#filters").innerHTML = FILTERS.map(([k, label, fn]) => `<button class="btn sm ${k === filter ? "" : "alt"}" data-filter="${k}">${label} (${orders.filter(fn).length})</button>`).join("");
+  const shown = orders.filter(FILTERS.find(f => f[0] === filter)[2]);  
+  $("#orders").innerHTML = shown.length ? shown.map(o => {
     const date = o.createdAt ? o.createdAt.toDate().toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "…";
     const btn = (act, label, cls = "") => `<button class="btn sm ${cls}" data-act="${act}" data-id="${o.id}">${label}</button>`;
     return `<div class="order ${o.status}">
@@ -92,9 +103,13 @@ function renderOrders() {
         ${o.status === "nouvelle" || o.status === "validée" ? btn("annuler", "Annuler", "red") : ""}
         ${o.status === "livrée" || o.status === "annulée" ? btn("suppr", "Supprimer", "alt") : ""}
       </div></div>`;
-  }).join("") : "<p>Aucune commande pour le moment.</p>";
+  }).join("") : "<p>Aucune commande dans cette catégorie.</p>";
 }
 
+$("#filters").addEventListener("click", e => {
+  const b = e.target.closest("[data-filter]"); if (!b) return;
+  filter = b.dataset.filter; renderOrders();
+});
 $("#orders").addEventListener("click", async e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
   const o = orders.find(x => x.id === b.dataset.id), act = b.dataset.act, ref = doc(db, "orders", o.id);
