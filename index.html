@@ -40,6 +40,24 @@ import { collection, onSnapshot, serverTimestamp, query, orderBy, doc, runTransa
 
 const $ = s => document.querySelector(s);
 let products = [], cart = {};
+
+// Notification push sur ton iPhone (app ntfy) à chaque nouvelle commande
+const NTFY_TOPIC = "khollation-13a10g";
+function notifyAdmin(n, total, time) {
+  fetch("https://ntfy.sh/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      topic: NTFY_TOPIC,
+      title: "Nouvelle commande 🛎️",
+      message: `${n} article${n > 1 ? "s" : ""} · ${eur(total)} · livraison vers ${time}`,
+      priority: 4,
+      tags: ["shopping_cart"],
+      click: new URL("admin.html", location.href).href
+    })
+  }).catch(() => {});
+}
+
 $("#title").textContent = SHOP.name;
 
 try { $("#name").value = localStorage.getItem("snack_name") || ""; $("#room").value = localStorage.getItem("snack_room") || ""; } catch {}
@@ -115,6 +133,7 @@ $("#form").onsubmit = async e => {
       tx.set(doc(collection(db, "orders")), { name, room, payment, items, totalCents: total, status: "nouvelle", paid: false, deliveryTime, comment, createdAt: serverTimestamp() });
     });
     try { localStorage.setItem("snack_name", name); localStorage.setItem("snack_room", room); } catch {}
+    notifyAdmin(items.reduce((s, i) => s + i.qty, 0), total, deliveryTime);
     cart = {}; render();
     $("#form").hidden = true; $("#done").hidden = false;
     $("#done").innerHTML = `<h2 style="margin-top:0">Commande envoyée ✅</h2><p>Total à payer : <strong>${eur(total)}</strong></p><p>${payment === "wero" ? "Paie en Wero : " + esc(SHOP.wero) : "Prépare ton paiement en espèces, de préférence l'appoint."}</p><p>Livraison dans ta chambre (${esc(room)}) vers <strong>${esc(deliveryTime)}</strong>, avec un éventuel petit retard.</p><button class="btn" id="ok">Fermer</button>`;
