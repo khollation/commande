@@ -20,6 +20,7 @@
   <span class="insta-txt"><strong>@khollation</strong><small>Nouveautés et promos en direct</small></span>
   <span class="insta-btn">Suivre</span>
 </a>
+<div id="shopstatus" class="status" role="status"></div>
 <div id="list" aria-live="polite">Chargement…</div>
 </main>
 
@@ -42,7 +43,7 @@
 </dialog>
 
 <script type="module">
-import { db, SHOP, esc, eur, CATEGORIES } from "./config.js";
+import { db, SHOP, esc, eur, CATEGORIES, shopStatus, toMin, LAST_DELIVERY } from "./config.js";
 import { collection, onSnapshot, serverTimestamp, query, orderBy, doc, runTransaction } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 const $ = s => document.querySelector(s);
@@ -66,6 +67,22 @@ function notifyAdmin(n, total, time) {
 }
 
 $("#title").textContent = SHOP.name;
+// Ouverture / fermeture
+let settings = null, shop = shopStatus(null);
+function syncOpen() {
+  const n = lines().reduce((s, i) => s + i.qty, 0);
+  $("#open").disabled = n === 0 || !shop.open;
+  $("#open").textContent = shop.open ? "Commander" : "Fermé";
+}
+function refreshShop() {
+  shop = shopStatus(settings);
+  const el = $("#shopstatus");
+  el.textContent = (shop.open ? "🟢 " : "🔴 ") + shop.text;
+  el.className = "status " + (shop.open ? "open" : "closed");
+  syncOpen();
+}
+onSnapshot(doc(db, "settings", "shop"), s => { settings = s.exists() ? s.data() : null; refreshShop(); }, () => refreshShop());
+setInterval(refreshShop, 30000);
 
 try { $("#name").value = localStorage.getItem("snack_name") || ""; $("#room").value = localStorage.getItem("snack_room") || ""; } catch {}
 
@@ -106,7 +123,7 @@ function render() {
   const n = lines().reduce((s, i) => s + i.qty, 0);
   $("#count").textContent = n + (n > 1 ? " articles" : " article");
   $("#total").textContent = eur(totalCents());
-  $("#open").disabled = n === 0;
+  syncOpen();
 }
 
 $("#list").addEventListener("click", e => {
@@ -119,6 +136,7 @@ $("#list").addEventListener("click", e => {
 $("#open").onclick = () => {
   $("#recap").innerHTML = "<ul>" + lines().map(i => `<li>${i.qty} × ${esc(i.name)}</li>`).join("") + `</ul><p><strong>Total : ${eur(totalCents())}</strong></p>`;
   $("#err").textContent = ""; $("#form").hidden = false; $("#done").hidden = true;
+  const now = new Date(); $("#time").min = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0"); $("#time").max = LAST_DELIVERY;  
   $("#dlg").showModal();
 };
 $("#cancel").onclick = () => $("#dlg").close();
@@ -128,6 +146,9 @@ $("#form").onsubmit = async e => {
   const f = new FormData(e.target), items = lines(), total = totalCents();
   const name = f.get("name").trim(), room = f.get("room").trim(), payment = f.get("payment");
   const deliveryTime = f.get("time"), comment = f.get("comment").trim();
+  const nowD = new Date();
+  if (!shopStatus(settings).open) { $("#err").textContent = "La boutique est fermée pour le moment."; return; }
+  if (toMin(deliveryTime) < nowD.getHours() * 60 + nowD.getMinutes() || toMin(deliveryTime) > toMin(LAST_DELIVERY)) { $("#err").textContent = "Choisis une heure de livraison entre maintenant et " + LAST_DELIVERY + "."; return; }  
   $("#send").disabled = true;
   try {
     await runTransaction(db, async tx => {
