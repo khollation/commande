@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Compta</title>
+<script>try{var t=localStorage.getItem("theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem}
+.kpi{background:var(--card);border-radius:1rem;padding:.8rem;box-shadow:var(--shadow)}
+.kpi small{display:block;color:var(--mute)}
+.kpi strong{font-size:1.35rem}
+table{width:100%;border-collapse:collapse;background:var(--card);border-radius:.8rem;overflow:hidden;box-shadow:var(--shadow)}
+td,th{padding:.5rem .7rem;text-align:left;border-bottom:1px solid var(--line)}
+td.n,th.n{text-align:right}
+.row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+.row input,.row select{width:auto}
+.erow{display:flex;justify-content:space-between;gap:.5rem;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--line)}
+</style>
+</head>
+<body style="padding-bottom:2rem">
+<header><h1>Compta</h1><p class="sub"><a href="admin.html" style="color:inherit">← Retour à l'admin</a></p></header>
+<main>
+  <p id="need" class="msg">Connecte-toi d'abord sur <a href="admin.html">admin.html</a>, puis reviens ici.</p>
+  <div id="panel" hidden>
+    <div class="row">
+      <select id="period" aria-label="Période">
+        <option value="1">Aujourd'hui</option>
+        <option value="7" selected>7 derniers jours</option>
+        <option value="30">30 derniers jours</option>
+        <option value="0">Tout</option>
+      </select>
+      <select id="group" aria-label="Regrouper par">
+        <option value="day">Par jour</option>
+        <option value="week">Par semaine</option>
+      </select>
+    </div>
+
+    <h2>Résumé</h2>
+    <div class="kpis" id="kpis"></div>
+
+    <h2>Produits les plus vendus</h2>
+    <div id="top"></div>
+
+    <h2 id="byh">Ventes</h2>
+    <div id="byday"></div>
+
+    <h2>Dépenses</h2>
+    <form id="addx" class="row">
+      <input id="xd" type="date" required aria-label="Date">
+      <input id="xl" type="text" placeholder="Achat (ex : cartons d'Oasis)" required style="flex:1;min-width:9rem" aria-label="Libellé">
+      <input id="xa" type="number" step="0.01" min="0" placeholder="Montant €" required style="width:7rem" aria-label="Montant en euros">
+      <button class="btn sm">Ajouter</button>
+    </form>
+    <div id="xlist"></div>
+
+    <h2>Export</h2>
+    <div class="row">
+      <button class="btn sm" id="ex-o">Commandes (CSV)</button>
+      <button class="btn sm" id="ex-x">Dépenses (CSV)</button>
+    </div>
+    <p class="note">Les exports suivent la période choisie. Ils s'ouvrent dans Excel ou Google Sheets.</p>
+  </div>
+</main>
+
+<script type="module">
+import { db, auth, esc, eur } from "./config.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { collection, onSnapshot, query, orderBy, limit, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+const $ = s => document.querySelector(s);
+const key = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+const fr = k => k.split("-").reverse().join("/");
+const num = c => (c / 100).toFixed(2).replace(".", ",");
+let orders = [], expenses = [], unsubs = [];
+$("#xd").value = key(new Date());
+
+onAuthStateChanged(auth, user => {
+  unsubs.forEach(u => u()); unsubs = [];
+  $("#panel").hidden = !user; $("#need").hidden = !!user;
+  if (!user) return;
+  unsubs.push(onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(2000)), s => {
+    orders = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(o => o.createdAt); render();
+  }));
+  unsubs.push(onSnapshot(query(collection(db, "expenses"), orderBy("date", "desc")), s => {
+    expenses = s.docs.map(d => ({ id: d.id, ...d.data() })); render();
+  }));
+});
+
+function since() {
+  const n = +$("#period").value; if (!n) return "";
+  const d = new Date(); d.setDate(d.getDate() - (n - 1)); return key(d);
+}
+const inOrders = o => key(o.createdAt.toDate()) >= since();
+const sum = (a, f) => a.reduce((t, x) => t + f(x), 0);
+const table = (h, rows) => rows.length
+  ? `<table><tr>${h.map((x, i) => `<th class="${i ? "n" : ""}">${x}</th>`).join("")}</tr>${rows.map(r => `<tr>${r.map((x, i) => `<td class="${i ? "n" : ""}">${x}</td>`).join("")}</tr>`).join("")}</table>`
+  : "<p class='note'>Aucune donnée sur cette période.</p>";
+
+function render() {
+  const s = since();
+  const os = orders.filter(o => o.status !== "annulée" && inOrders(o));
+  const xs = expenses.filter(x => x.date >= s);
+  const ca = sum(os, o => o.totalCents), paid = sum(os.filter(o => o.paid), o => o.totalCents), dep = sum(xs, x => x.amountCents);
+
+  $("#kpis").innerHTML = [["Chiffre d'affaires", eur(ca)], ["Pas encore encaissé", eur(ca - paid)], ["Dépenses", eur(dep)], ["Bénéfice", eur(paid - dep)], ["Commandes", os.length]]
+    .map(([l, v]) => `<div class="kpi"><small>${l}</small><strong>${v}</strong></div>`).join("");
+
+  const p = {};
+  os.forEach(o => o.items.forEach(i => { const r = p[i.name] ||= { q: 0, c: 0 }; r.q += i.qty; r.c += i.qty * i.priceCents; }));
+  $("#top").innerHTML = table(["Produit", "Qté", "CA"], Object.entries(p).sort((a, b) => b[1].q - a[1].q).map(([n, r]) => [esc(n), r.q, eur(r.c)]));
+
+  const week = $("#group").value === "week", days = {};
+  const monday = d => { const x = new Date(d); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return key(x); };
+  os.forEach(o => { const d = o.createdAt.toDate(), k = week ? monday(d) : key(d); const r = days[k] ||= { n: 0, c: 0 }; r.n++; r.c += o.totalCents; });
+  $("#byh").textContent = week ? "Ventes par semaine (début le lundi)" : "Ventes par jour";
+  $("#byday").innerHTML = table([week ? "Semaine du" : "Jour", "Commandes", "CA"], Object.keys(days).sort().reverse().map(k => [fr(k), days[k].n, eur(days[k].c)]));
+
+  $("#xlist").innerHTML = xs.map(x => `<div class="erow"><span>${fr(x.date)} · ${esc(x.label)}</span><span><strong>${eur(x.amountCents)}</strong> <button class="btn sm red" data-del="${x.id}" aria-label="Supprimer cette dépense">✕</button></span></div>`).join("") || "<p class='note'>Aucune dépense sur cette période.</p>";
+}
+$("#period").onchange = $("#group").onchange = render;
+
+$("#addx").onsubmit = async e => {
+  e.preventDefault();
+  try {
+    await addDoc(collection(db, "expenses"), { date: $("#xd").value, label: $("#xl").value.trim(), amountCents: Math.round($("#xa").value * 100) });
+    $("#xl").value = ""; $("#xa").value = "";
+  } catch (err) { alert("Ajout impossible : " + err.message); }
+};
+$("#xlist").onclick = async e => {
+  const b = e.target.closest("[data-del]");
+  if (!b || !confirm("Supprimer cette dépense ?")) return;
+  try { await deleteDoc(doc(db, "expenses", b.dataset.del)); } catch (err) { alert("Suppression impossible : " + err.message); }
+};
+
+function csv(name, rows) {
+  const txt = "\ufeff" + rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(";")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([txt], { type: "text/csv;charset=utf-8" }));
+  a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+$("#ex-o").onclick = () => csv("commandes.csv", [["Date", "Heure", "Statut", "Payée", "Paiement", "Produits", "Total (€)"],
+  ...orders.filter(inOrders).map(o => { const d = o.createdAt.toDate(); return [key(d), d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }), o.status, o.paid ? "oui" : "non", o.payment, o.items.map(i => i.qty + " x " + i.name).join(" ; "), num(o.totalCents)]; })]);
+$("#ex-x").onclick = () => csv("depenses.csv", [["Date", "Libellé", "Montant (€)"], ...expenses.filter(x => x.date >= since()).map(x => [x.date, x.label, num(x.amountCents)])]);
+</script>
+</body>
+</html>
