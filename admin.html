@@ -53,9 +53,9 @@
 </main>
 
 <script type="module">
-import { db, auth, esc, eur, CATEGORIES } from "./config.js";
+import { db, auth, esc, eur, CATEGORIES, shopStatus, todayKey } from "./config.js";
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import { collection, onSnapshot, query, orderBy, limit, doc, updateDoc, deleteDoc, addDoc, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { collection, onSnapshot, query, orderBy, limit, doc, updateDoc, deleteDoc, addDoc, setDoc, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 const $ = s => document.querySelector(s);
 let orders = [], products = [], unsubs = [], ctx, first = true;
@@ -66,7 +66,10 @@ function renderShop() {
   $("#shopinfo").className = "status " + (s.open ? "open" : "closed");
 }
 setInterval(renderShop, 30000);
-const setMode = patch => setDoc(doc(db, "settings", "shop"), { date: todayKey(new Date()), ...patch }).catch(err => alert("Réglage impossible : " + err.message));
+const setMode = async patch => {
+  try { await setDoc(doc(db, "settings", "shop"), { date: todayKey(new Date()), ...patch }); }
+  catch (err) { alert("Réglage impossible : " + err.message); }
+};
 $("#m-auto").onclick = () => setMode({ mode: "auto" });
 $("#m-open").onclick = () => setMode({ mode: "open" });
 $("#m-closed").onclick = () => setMode({ mode: "closed" });
