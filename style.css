@@ -85,3 +85,19 @@ select{width:100%;padding:.45rem .6rem;border:2px solid var(--line);border-radiu
 .status:empty{display:none}
 .status.open{background:#E3F4EA;color:#14683F}
 .status.closed{background:#FCE8E5;color:#B02A1D}
+/* Bouton de thème */
+.theme-btn{position:absolute;top:.6rem;right:.6rem;width:2.6rem;height:2.6rem;border-radius:50%;border:2px solid var(--line);background:var(--card);font-size:1.2rem;line-height:1;box-shadow:var(--shadow)}
+
+/* Thème sombre */
+[data-theme="dark"]{color-scheme:dark;--bg:#0E1626;--card:#17233B;--ink:#E8EEF8;--blue:#4562F0;--red:#FF7A6B;--line:#2A3A5C;--mute:#9FB0CC;--shadow:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.35)}
+[data-theme="dark"] .price,[data-theme="dark"] .insta-btn,[data-theme="dark"] .bar .btn{color:#12305A}
+[data-theme="dark"] .bar{background:#22345A}
+[data-theme="dark"] .btn.red{background:#D93A2B}
+[data-theme="dark"] .btn.alt,[data-theme="dark"] .step button{background:var(--card);color:var(--ink)}
+[data-theme="dark"] .step button:not(:disabled):active{background:var(--ink);color:#12305A}
+[data-theme="dark"] dialog{background:var(--card)}
+[data-theme="dark"] input[type=text],[data-theme="dark"] input[type=email],[data-theme="dark"] input[type=password],[data-theme="dark"] input[type=number],[data-theme="dark"] input[type=time],[data-theme="dark"] textarea,[data-theme="dark"] select{background:var(--bg);color:var(--ink)}
+[data-theme="dark"] .radios label:has(input:checked){background:#1F2F55}
+[data-theme="dark"] .comment{background:#3A331A}
+[data-theme="dark"] .status.open{background:#12352A;color:#6FE0A5}
+[data-theme="dark"] .status.closed{background:#3C1B18;color:#FF9A8E}
