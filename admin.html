@@ -7,9 +7,11 @@
 <title>Admin · Commandes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script>try{var t=localStorage.getItem("theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body style="padding-bottom:2rem">
+<button id="theme" class="theme-btn" type="button" aria-label="Changer de thème">🌙</button>  
 <header><h1>Admin</h1></header>
 <main>
   <form id="login">
@@ -59,6 +61,19 @@ import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https:/
 import { collection, onSnapshot, query, orderBy, limit, doc, updateDoc, deleteDoc, addDoc, setDoc, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 const $ = s => document.querySelector(s);
+// Thème clair / sombre
+const themeBtn = $("#theme");
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  themeBtn.textContent = t === "dark" ? "☀️" : "🌙";
+  themeBtn.setAttribute("aria-label", t === "dark" ? "Passer au thème clair" : "Passer au thème sombre");
+}
+applyTheme(document.documentElement.dataset.theme || "light");
+themeBtn.onclick = () => {
+  const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  applyTheme(t);
+  try { localStorage.setItem("theme", t); } catch {}
+};
 let orders = [], products = [], unsubs = [], ctx, first = true;
 let settings = null;
 function renderShop() {
