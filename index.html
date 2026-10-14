@@ -7,9 +7,11 @@
 <link rel="icon" href="logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script>try{var t=localStorage.getItem("theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<button id="theme" class="theme-btn" type="button" aria-label="Changer de thème">🌙</button>
 <header>
   <h1 id="title">La Khôllation</h1>
   <p class="sub">Choisis tes produits, commande, puis paie à la livraison (espèces ou en Wero).</p>
@@ -67,6 +69,19 @@ function notifyAdmin(n, total, time) {
 }
 
 $("#title").textContent = SHOP.name;
+// Thème clair / sombre
+const themeBtn = $("#theme");
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  themeBtn.textContent = t === "dark" ? "☀️" : "🌙";
+  themeBtn.setAttribute("aria-label", t === "dark" ? "Passer au thème clair" : "Passer au thème sombre");
+}
+applyTheme(document.documentElement.dataset.theme || "light");
+themeBtn.onclick = () => {
+  const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  applyTheme(t);
+  try { localStorage.setItem("theme", t); } catch {}
+};
 // Ouverture / fermeture
 let settings = null, shop = shopStatus(null);
 function syncOpen() {
