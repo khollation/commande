@@ -105,8 +105,7 @@ onAuthStateChanged(auth, user => {
   unsubs.push(onSnapshot(query(collection(db, "products"), orderBy("name")), snap => {
     products = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderProducts();
   }));
-  unsubs.push(onSnapshot(doc(db, "settings", "shop"), s => { settings = s.exists() ? s.data() : null; renderShop(); }));  
-});
+  unsubs.push(onSnapshot(doc(db, "settings", "shop"), s => { settings = s.exists() ? s.data() : null; renderShop(); }, err => { $("#shopinfo").textContent = "Erreur : " + err.message; }));});
 
 function beep() {
   try { const o = ctx.createOscillator(); o.frequency.value = 880; o.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 0.3); } catch {}
