@@ -22,6 +22,7 @@
   <span class="insta-txt"><strong>@khollation</strong><small>Nouveautés et promos en direct</small></span>
   <span class="insta-btn">Suivre</span>
 </a>
+<div id="announce" class="announce" hidden></div>
 <div id="shopstatus" class="status" role="status"></div>
 <div id="list" aria-live="polite">Chargement…</div>
 </main>
@@ -98,6 +99,12 @@ function refreshShop() {
 }
 onSnapshot(doc(db, "settings", "shop"), s => { settings = s.exists() ? s.data() : null; refreshShop(); }, () => refreshShop());
 setInterval(refreshShop, 30000);
+// Bannière d'annonce
+onSnapshot(doc(db, "settings", "announce"), s => {
+  const d = s.exists() ? s.data() : null, el = $("#announce");
+  el.hidden = !(d && d.on && d.text);
+  el.textContent = d && d.text ? "📣 " + d.text : "";
+}, () => {});
 
 try { $("#name").value = localStorage.getItem("snack_name") || ""; $("#room").value = localStorage.getItem("snack_room") || ""; } catch {}
 
@@ -122,7 +129,7 @@ function itemHtml(p) {
   const q = cart[p.id] || 0, out = p.stock < 1;
   return `<div class="item">
       <div class="emoji">${p.image ? `<img class="pimg" src="${esc(p.image)}" alt="">` : esc(p.emoji || "🥤")}</div>
-      <div><div class="name">${esc(p.name)}</div><div class="stock ${p.stock <= 3 ? "low" : ""}">${out ? "Épuisé" : p.stock + " en stock"}</div></div>
+      <div><div class="name">${esc(p.name)}${p.badge === "new" ? '<span class="badge new">Nouveau</span>' : p.badge === "promo" ? '<span class="badge promo">Promo</span>' : ""}</div><div class="stock ${p.stock <= 3 ? "low" : ""}">${out ? "Épuisé" : p.stock + " en stock"}</div></div>
       <div class="right"><span class="price">${eur(p.priceCents)}</span>
         <div class="step">${out ? "" : `<button data-id="${p.id}" data-d="-1" ${q ? "" : "disabled"} aria-label="Retirer ${esc(p.name)}">−</button><span>${q}</span><button data-id="${p.id}" data-d="1" ${q >= p.stock ? "disabled" : ""} aria-label="Ajouter ${esc(p.name)}">+</button>`}</div>
       </div></div>`;
