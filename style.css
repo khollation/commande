@@ -101,3 +101,8 @@ select{width:100%;padding:.45rem .6rem;border:2px solid var(--line);border-radiu
 [data-theme="dark"] .comment{background:#3A331A}
 [data-theme="dark"] .status.open{background:#12352A;color:#6FE0A5}
 [data-theme="dark"] .status.closed{background:#3C1B18;color:#FF9A8E}
+/* Bannière d'annonce et badges */
+.announce{padding:.7rem .9rem;margin-bottom:1rem;border-radius:.8rem;font-weight:700;text-align:center;background:var(--sticker);color:#12305A;transform:rotate(-.6deg);box-shadow:var(--shadow)}
+.badge{display:inline-block;margin-left:.45rem;padding:.05rem .45rem;border-radius:.3rem;font-size:.72rem;font-weight:800;letter-spacing:.03em;text-transform:uppercase;vertical-align:.1em;color:#fff}
+.badge.new{background:var(--blue)}
+.badge.promo{background:#D93A2B}
