@@ -38,6 +38,12 @@
       <input id="ct" type="time" value="22:30" style="width:auto" aria-label="Fermeture">
       <button class="btn sm" id="m-custom">Appliquer</button>
     </div>    
+    <h2>Bannière d'annonce</h2>
+    <input id="an-text" type="text" maxlength="120" placeholder="Ex : Nouveau : Oasis Pomme Cassis Framboise à 1,10 € !" aria-label="Texte de l'annonce">
+    <div class="chips" style="align-items:center">
+      <label style="margin:0;display:flex;gap:.4rem;align-items:center;font-weight:500"><input type="checkbox" id="an-on"> Afficher sur le site</label>
+      <button class="btn sm" id="an-save">Enregistrer</button>
+    </div>    
     <h2>Commandes</h2>
     <div id="filters" class="chips" role="group" aria-label="Filtrer les commandes"></div>    
     <div id="orders"></div>
@@ -86,6 +92,10 @@ const setMode = async patch => {
   try { await setDoc(doc(db, "settings", "shop"), { date: todayKey(new Date()), ...patch }); }
   catch (err) { alert("Réglage impossible : " + err.message); }
 };
+$("#an-save").onclick = async () => {
+  try { await setDoc(doc(db, "settings", "announce"), { text: $("#an-text").value.trim(), on: $("#an-on").checked }); }
+  catch (err) { alert("Enregistrement impossible : " + err.message); }
+};
 $("#m-auto").onclick = () => setMode({ mode: "auto" });
 $("#m-open").onclick = () => setMode({ mode: "open" });
 $("#m-closed").onclick = () => setMode({ mode: "closed" });
@@ -125,7 +135,7 @@ onAuthStateChanged(auth, user => {
     products = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderProducts();
   }));
   unsubs.push(onSnapshot(doc(db, "settings", "shop"), s => { settings = s.exists() ? s.data() : null; renderShop(); }, err => { $("#shopinfo").textContent = "Erreur : " + err.message; }));});
-
+  unsubs.push(onSnapshot(doc(db, "settings", "announce"), s => { const d = s.exists() ? s.data() : {}; $("#an-text").value = d.text || ""; $("#an-on").checked = !!d.on; }));
 function beep() {
   try { const o = ctx.createOscillator(); o.frequency.value = 880; o.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 0.3); } catch {}
 }
@@ -199,6 +209,7 @@ function renderProducts() {
     <input type="number" min="0" value="${p.stock}" data-f="stock" aria-label="Stock de ${esc(p.name)}">
     <button class="btn sm" data-p="save">Enregistrer</button>
     <button class="btn sm red" data-p="del">Supprimer</button>
+    <select data-f="badge" style="grid-column:1/-1" aria-label="Badge de ${esc(p.name)}">${[["", "Aucun badge"], ["new", "Badge Nouveau"], ["promo", "Badge Promo"]].map(([v, l]) => `<option value="${v}" ${(p.badge || "") === v ? "selected" : ""}>${l}</option>`).join("")}</select>    
     <select data-f="cat" style="grid-column:1/-1" aria-label="Catégorie de ${esc(p.name)}">${["", ...CATEGORIES].map(c => `<option value="${esc(c)}" ${(p.category || "") === c ? "selected" : ""}>${c ? esc(c) : "Autres (sans catégorie)"}</option>`).join("")}</select></div>`).join("");
 }
 
@@ -216,6 +227,7 @@ $("#products").addEventListener("change", async e => {
   try {
     if (el.dataset.f === "img" && el.files[0]) await updateDoc(ref(), { image: await resize(el.files[0]) });
     else if (el.dataset.f === "cat") await updateDoc(ref(), { category: el.value });
+    else if (el.dataset.f === "badge") await updateDoc(ref(), { badge: el.value });    
   } catch (err) { alert("Modification impossible : " + err.message); }
 });
   
