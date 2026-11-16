@@ -1,0 +1,108 @@
+:root{--bg:#F5F7FA;--card:#fff;--ink:#12305A;--blue:#2447E8;--sticker:#FFD23F;--crumb:#8F5E2E;--red:#D93A2B;--line:#E1E7EE;--mute:#5A6B85;--ok:#1E8A55;--shadow:0 1px 2px rgba(18,48,90,.06),0 6px 18px rgba(18,48,90,.07)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 "Bricolage Grotesque",system-ui,sans-serif;padding-bottom:6.5rem;-webkit-tap-highlight-color:transparent}
+header,main{max-width:40rem;margin:0 auto;padding:0 1rem}
+header{padding-top:1rem;text-align:center}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+h1{font-size:2.4rem;font-weight:800;line-height:1.05;letter-spacing:-.02em;margin:0 0 .25rem}
+h2{font-size:1.3rem;margin:2rem 0 .5rem}
+p.sub{margin:0 auto 1.25rem;max-width:28rem;color:var(--mute);font-size:.95rem}
+button,input,select{font:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+
+/* Produits */
+#list{display:flex;flex-direction:column;gap:.7rem}
+.item{display:grid;grid-template-columns:3.8rem 1fr auto;gap:.8rem;align-items:center;padding:.7rem .8rem;background:var(--card);border-radius:1rem;box-shadow:var(--shadow);transition:transform .15s}
+.item:active{transform:scale(.99)}
+.emoji{font-size:2.1rem;text-align:center;line-height:1}
+.name{font-weight:700;font-size:1.05rem}
+.stock{font-size:.85rem;color:var(--mute)}
+.stock.low{color:var(--red);font-weight:600}
+.right{display:flex;flex-direction:column;align-items:flex-end;gap:.45rem}
+.price{background:var(--sticker);font-weight:800;padding:.1rem .55rem;border-radius:.3rem;transform:rotate(-2deg);box-shadow:0 1px 0 rgba(18,48,90,.15)}
+.step{display:flex;align-items:center;gap:.55rem;min-width:7rem;justify-content:flex-end;font-weight:700}
+.step button{width:2.4rem;height:2.4rem;border-radius:50%;border:2px solid var(--ink);background:#fff;color:var(--ink);font-weight:700;font-size:1.1rem;line-height:1;transition:background .15s,color .15s}
+.step button:not(:disabled):active{background:var(--ink);color:#fff}
+.step button:disabled{opacity:.3;cursor:default}
+.pimg{width:100%;aspect-ratio:1;object-fit:cover;border-radius:.7rem;display:block}
+.thumb{display:block;cursor:pointer}
+
+/* Boutons */
+.btn{background:var(--blue);color:#fff;border:0;border-radius:.7rem;padding:.7rem 1.2rem;font-weight:700;transition:filter .15s,transform .1s}
+.btn:not(:disabled):hover{filter:brightness(1.08)}
+.btn:not(:disabled):active{transform:scale(.97)}
+.btn.alt{background:#fff;color:var(--ink);border:2px solid var(--ink)}
+.btn.red{background:var(--red)}
+.btn.sm{padding:.4rem .75rem;font-size:.9rem;border-radius:.55rem}
+.btn:disabled{opacity:.4;cursor:default}
+
+/* Barre panier */
+.bar{position:fixed;left:.6rem;right:.6rem;bottom:.6rem;max-width:39rem;margin:0 auto;background:var(--ink);color:#fff;padding:.7rem .8rem .7rem 1.1rem;border-radius:1rem;display:flex;justify-content:space-between;align-items:center;gap:1rem;box-shadow:0 8px 24px rgba(18,48,90,.35)}
+.bar .btn{background:var(--sticker);color:var(--ink)}
+
+/* Fenêtre de commande */
+dialog{border:0;border-radius:1.1rem;padding:1.4rem;width:min(92vw,26rem);color:var(--ink);box-shadow:0 20px 50px rgba(18,48,90,.35)}
+dialog::backdrop{background:rgba(18,48,90,.6);backdrop-filter:blur(2px)}
+label{display:block;font-weight:600;margin:.8rem 0 .25rem}
+input[type=text],input[type=email],input[type=password],input[type=number]{width:100%;padding:.65rem .75rem;border:2px solid var(--line);border-radius:.6rem;background:#fff;color:var(--ink)}
+input[type=text]:focus,input[type=email]:focus,input[type=password]:focus,input[type=number]:focus{border-color:var(--blue);outline:0}
+.radios label{display:flex;gap:.5rem;align-items:center;font-weight:500;margin:.35rem 0;padding:.5rem .65rem;border:2px solid var(--line);border-radius:.6rem}
+.radios label:has(input:checked){border-color:var(--blue);background:#EEF2FE}
+.msg{color:var(--red);font-weight:600}
+
+/* Admin */
+.order{background:var(--card);border:2px solid transparent;border-radius:1rem;padding:.9rem;margin:.7rem 0;box-shadow:var(--shadow)}
+.order.nouvelle{border-color:var(--blue)}
+.order .top{display:flex;justify-content:space-between;gap:.5rem;font-weight:700}
+.order ul{margin:.4rem 0;padding-left:1.1rem}
+.chips{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.5rem}
+.tag{font-size:.8rem;font-weight:700;padding:.1rem .55rem;border-radius:1rem;background:var(--line)}
+.tag.ok{background:var(--ok);color:#fff}
+.prow{display:grid;grid-template-columns:2.5rem 1fr 5rem 4.5rem auto auto;gap:.4rem;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--line)}
+.prow input{padding:.4rem}
+@media(max-width:34rem){.prow{grid-template-columns:2.5rem 1fr 4.5rem 4rem}.prow .btn{grid-column:span 2}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+textarea{width:100%;padding:.65rem .75rem;border:2px solid var(--line);border-radius:.6rem;background:#fff;color:var(--ink);resize:vertical}
+textarea:focus,input[type=time]:focus{border-color:var(--blue);outline:0}
+input[type=time]{width:100%;padding:.65rem .75rem;border:2px solid var(--line);border-radius:.6rem;background:#fff;color:var(--ink)}
+.note{margin:.3rem 0 0;font-size:.85rem;color:var(--mute)}
+.deliv{margin:.35rem 0 0}
+.comment{margin:.4rem 0;padding:.5rem .65rem;background:#FFF6D6;border-radius:.5rem;font-size:.95rem}
+dialog{max-height:92vh}
+h2.cat{margin:1.2rem 0 .1rem;font-size:1.25rem;display:flex;align-items:center;gap:.6rem}
+h2.cat::after{content:"";flex:1;height:2px;background:var(--line);border-radius:2px}
+select{width:100%;padding:.45rem .6rem;border:2px solid var(--line);border-radius:.6rem;background:#fff;color:var(--ink)}
+/* Carte Instagram */
+.insta{display:flex;align-items:center;gap:.8rem;padding:.7rem .8rem;margin-bottom:1rem;background:var(--card);border-radius:1rem;box-shadow:var(--shadow);color:var(--ink);text-decoration:none;transition:transform .15s}
+.insta:active{transform:scale(.99)}
+.insta-ico{flex:none;width:3rem;height:3rem;border-radius:.9rem;display:grid;place-items:center;background:radial-gradient(circle at 30% 107%,#fdf497 0%,#fdf497 5%,#fd5949 45%,#d6249f 60%,#285AEB 90%)}
+.insta-txt{flex:1;display:flex;flex-direction:column;line-height:1.2}
+.insta-txt small{color:var(--mute)}
+.insta-btn{flex:none;background:var(--sticker);font-weight:800;padding:.4rem .9rem;border-radius:.6rem}
+/* Bandeau ouvert / fermé */
+.status{padding:.6rem .9rem;border-radius:.8rem;font-weight:700;margin-bottom:1rem;text-align:center}
+.status:empty{display:none}
+.status.open{background:#E3F4EA;color:#14683F}
+.status.closed{background:#FCE8E5;color:#B02A1D}
+/* Bouton de thème */
+.theme-btn{position:absolute;top:.6rem;right:.6rem;width:2.6rem;height:2.6rem;border-radius:50%;border:2px solid var(--line);background:var(--card);font-size:1.2rem;line-height:1;box-shadow:var(--shadow)}
+
+/* Thème sombre */
+[data-theme="dark"]{color-scheme:dark;--bg:#0E1626;--card:#17233B;--ink:#E8EEF8;--blue:#4562F0;--red:#FF7A6B;--line:#2A3A5C;--mute:#9FB0CC;--shadow:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.35)}
+[data-theme="dark"] .price,[data-theme="dark"] .insta-btn,[data-theme="dark"] .bar .btn{color:#12305A}
+[data-theme="dark"] .bar{background:#22345A}
+[data-theme="dark"] .btn.red{background:#D93A2B}
+[data-theme="dark"] .btn.alt,[data-theme="dark"] .step button{background:var(--card);color:var(--ink)}
+[data-theme="dark"] .step button:not(:disabled):active{background:var(--ink);color:#12305A}
+[data-theme="dark"] dialog{background:var(--card)}
+[data-theme="dark"] input[type=text],[data-theme="dark"] input[type=email],[data-theme="dark"] input[type=password],[data-theme="dark"] input[type=number],[data-theme="dark"] input[type=time],[data-theme="dark"] textarea,[data-theme="dark"] select{background:var(--bg);color:var(--ink)}
+[data-theme="dark"] .radios label:has(input:checked){background:#1F2F55}
+[data-theme="dark"] .comment{background:#3A331A}
+[data-theme="dark"] .status.open{background:#12352A;color:#6FE0A5}
+[data-theme="dark"] .status.closed{background:#3C1B18;color:#FF9A8E}
+/* Bannière d'annonce et badges */
+.announce{padding:.7rem .9rem;margin-bottom:1rem;border-radius:.8rem;font-weight:700;text-align:center;background:var(--sticker);color:#12305A;transform:rotate(-.6deg);box-shadow:var(--shadow)}
+.badge{display:inline-block;margin-left:.45rem;padding:.05rem .45rem;border-radius:.3rem;font-size:.72rem;font-weight:800;letter-spacing:.03em;text-transform:uppercase;vertical-align:.1em;color:#fff}
+.badge.new{background:var(--blue)}
+.badge.promo{background:#D93A2B}
