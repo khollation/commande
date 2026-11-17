@@ -9,6 +9,7 @@ const fs = require("node:fs");
 const { chromium } = require("playwright");
 const { startServer } = require("./server.cjs");
 const emu = require("./emulator.cjs");
+const { ADMIN } = require("./fixtures.cjs");
 
 const REPO = path.join(__dirname, "..", "..");
 const PROD_PROJECT = "internat-couffignal";
@@ -59,9 +60,9 @@ async function assertEmulators() {
 /**
  * @param {object} o
  * @param {"new"|"original"} [o.version] version du site à servir
- * @param {string} [o.sdkDir] dossier du SDK Firebase 10.14.1 (uniquement pour la version d'origine, qui le charge depuis un CDN)
+ * @param {string} [o.sdkDir] dossier du SDK Firebase servi à la place du CDN (uniquement pour la version d'origine, qui le charge depuis gstatic.com)
  */
-async function startSite({ version = "new", sdkDir = process.env.FIREBASE_SDK_DIR } = {}) {
+async function startSite({ version = "new", sdkDir = path.join(REPO, "vendor", "firebase") } = {}) {
   await assertEmulators();
   const root = version === "original" ? path.join(REPO, "backup", "2026-11-16-version-originale") : REPO;
   const transform = transformFor(version);
@@ -106,4 +107,36 @@ async function startSite({ version = "new", sdkDir = process.env.FIREBASE_SDK_DI
   };
 }
 
-module.exports = { startSite, REPO, DEFAULT_TIME };
+/** Attend qu'une condition devienne vraie (l'interface se met à jour de façon asynchrone). */
+async function until(fn, what = "la condition attendue", timeout = 8000) {
+  const start = Date.now();
+  let last;
+  while (Date.now() - start < timeout) {
+    try { last = await fn(); if (last) return last; } catch (err) { last = err; }
+    await new Promise(r => setTimeout(r, 50));
+  }
+  throw new Error("Délai dépassé : " + what + (last instanceof Error ? " (" + last.message + ")" : ""));
+}
+
+/** Texte d'un élément, espaces normalisés. */
+const text = async (page, selector) => ((await page.textContent(selector)) || "").replace(/\s+/g, " ").trim();
+
+/** Connexion de l'administrateur de test sur admin.html ou compta.html. */
+async function signIn(page, { email = ADMIN.email, password = ADMIN.password } = {}) {
+  await page.waitForSelector("#login:not([hidden])");
+  await page.fill("#em", email);
+  await page.fill("#pw", password);
+  await page.click("#login button");
+}
+
+/**
+ * Coupe les mises à jour en direct d'un contexte (le flux d'écoute de Firestore) tout en laissant passer
+ * les autres requêtes : la page garde alors des données périmées, comme sur un réseau capricieux.
+ */
+async function cutLiveUpdates(context) {
+  await context.route(url => url.href.includes("/Listen/"), route => route.abort());
+  await context.setOffline(true);
+  await context.setOffline(false);
+}
+
+module.exports = { startSite, until, text, signIn, cutLiveUpdates, REPO, DEFAULT_TIME };
