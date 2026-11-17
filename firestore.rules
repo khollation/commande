@@ -1,0 +1,76 @@
+rules_version = '2';
+
+// ════════════════════════════════════════════════════════════════════
+//  Règles de sécurité recommandées pour la base de données de La Khôllation
+//
+//  À copier dans la console Firebase : Firestore Database → onglet « Règles »
+//  → coller ce fichier en entier → « Publier ». Mode d'emploi : README.md,
+//  section « Sécuriser la base de données ».
+//
+//  Ce qu'elles garantissent :
+//  - un client peut voir les produits, passer commande et suivre SA commande ;
+//  - il ne peut ni changer un prix, ni lire les commandes des autres,
+//    ni toucher aux réglages, aux dépenses ou à la compta ;
+//  - seul le compte admin indiqué ci-dessous peut tout gérer.
+// ════════════════════════════════════════════════════════════════════
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ⚠️ À MODIFIER : l'adresse e-mail de ton compte admin (celle que tu tapes sur admin.html).
+    // Pour plusieurs admins : ["premier@exemple.com", "second@exemple.com"]
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email in ["REMPLACE-PAR-TON-EMAIL@exemple.com"];
+    }
+
+    // Produits : visibles par tous. Seul l'admin les crée, les modifie ou les supprime.
+    // Un client peut seulement faire baisser le stock, au moment où il commande.
+    match /products/{productId} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || stockDecrease();
+    }
+
+    function stockDecrease() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(["stock"])
+        && request.resource.data.stock is int
+        && request.resource.data.stock >= 0
+        && request.resource.data.stock < resource.data.stock;
+    }
+
+    // Commandes : un client peut en créer une (au bon format) et suivre la sienne
+    // grâce à son identifiant (impossible à deviner). La liste complète, les
+    // modifications et les suppressions sont réservées à l'admin.
+    match /orders/{orderId} {
+      allow get: if true;
+      allow list, update, delete: if isAdmin();
+      allow create: if isAdmin() || validOrder(request.resource.data);
+    }
+
+    function validOrder(o) {
+      return o.keys().hasOnly(["name", "room", "payment", "items", "totalCents", "status", "paid", "deliveryTime", "comment", "createdAt"])
+        && o.keys().hasAll(["name", "room", "payment", "items", "totalCents", "status", "paid", "deliveryTime", "createdAt"])
+        && o.name is string && o.name.size() > 0 && o.name.size() <= 30
+        && o.room is string && o.room.size() > 0 && o.room.size() <= 10
+        && o.payment in ["wero", "especes"]
+        && o.items is list && o.items.size() > 0 && o.items.size() <= 50
+        && o.totalCents is int && o.totalCents >= 0
+        && o.status == "nouvelle"
+        && o.paid == false
+        && o.deliveryTime is string && o.deliveryTime.size() == 5
+        && (!("comment" in o) || (o.comment is string && o.comment.size() <= 200))
+        && o.createdAt == request.time;
+    }
+
+    // Réglages (ouverture de la boutique, bannière d'annonce) : visibles par tous, modifiables par l'admin.
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Dépenses : réservées à l'admin.
+    match /expenses/{expenseId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

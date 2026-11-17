@@ -1,5 +1,7 @@
 // Accès direct aux émulateurs Firebase (Firestore + Auth) pour préparer et vérifier les données de test.
 // Le jeton « owner » contourne les règles de sécurité : il n'existe que dans l'émulateur.
+const fs = require("node:fs");
+const path = require("node:path");
 const PROJECT = "demo-khollation";
 const FS = "http://127.0.0.1:8080";
 const AUTH = "http://127.0.0.1:9099";
@@ -59,9 +61,19 @@ const setRules = source => call(`${FS}/emulator/v1/projects/${PROJECT}:securityR
 const OPEN_RULES = `rules_version = '2';
 service cloud.firestore { match /databases/{database}/documents { match /{document=**} { allow read, write: if true; } } }`;
 
-async function reset({ rules = OPEN_RULES } = {}) {
+/**
+ * Règles recommandées (firestore.rules), avec l'adresse de l'admin de test à la place de celle à remplacer.
+ * Les tests utilisent ces règles quand la variable d'environnement KH_RULES vaut 1 (« npm run test:regles »).
+ */
+function recommendedRules(adminEmail = "admin@khollation.test") {
+  const source = fs.readFileSync(path.join(__dirname, "..", "..", "firestore.rules"), "utf8");
+  if (!source.includes("REMPLACE-PAR-TON-EMAIL@exemple.com")) throw new Error("firestore.rules : adresse à remplacer introuvable");
+  return source.replace("REMPLACE-PAR-TON-EMAIL@exemple.com", adminEmail);
+}
+
+async function reset({ rules = process.env.KH_RULES === "1" ? recommendedRules() : OPEN_RULES } = {}) {
   await Promise.all([clearFirestore(), clearAuth()]);
   await setRules(rules);
 }
 
-module.exports = { PROJECT, FS, AUTH, setDoc, getDoc, listDocs, deleteDoc, clearFirestore, clearAuth, createUser, setRules, reset, OPEN_RULES };
+module.exports = { PROJECT, FS, AUTH, setDoc, getDoc, listDocs, deleteDoc, clearFirestore, clearAuth, createUser, setRules, reset, recommendedRules, OPEN_RULES };

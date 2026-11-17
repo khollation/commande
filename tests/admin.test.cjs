@@ -36,7 +36,8 @@ async function openAdmin(options, hash = "") {
 const card = id => `.order[data-id="${id}"]`;
 const act = (id, action) => `${card(id)} [data-act="${action}"]`;
 const confirmYes = page => page.click('dialog.confirm button[value="yes"]');
-const lastToast = page => until(async () => { const t = await page.$$eval(".toast span", els => els.map(e => e.textContent)); return t[t.length - 1]; }, "message");
+/** Attend qu'un message éphémère affiche exactement ce texte. */
+const expectToast = (page, expected) => until(async () => (await page.$$eval(".toast span", els => els.map(e => e.textContent))).includes(expected), "message « " + expected + " »");
 const tab = (page, name) => page.click(`#tabs [data-tab="${name}"]`);
 /** Tuiles de chiffres clés : [libellé, valeur]. */
 const tiles = (page, root) => page.$$eval(root + " .kpi", els => els.map(e => [e.querySelector(".kpi-label").textContent, e.querySelector(".kpi-value").textContent]));
@@ -107,7 +108,7 @@ test("cycle d'une commande : valider, livrer, encaisser depuis le message", asyn
   assert.equal((await emu.getDoc("orders/o1")).paid, false);
   await page.click(act("o1", "livrer"));
   await until(async () => (await emu.getDoc("orders/o1")).status === "livrée", "commande livrée");
-  assert.equal(await lastToast(page), "Commande de Léa livrée.");
+  await expectToast(page, "Commande de Léa livrée.");
   await page.click('.toast button:text("Marquer payée")');
   await until(async () => (await emu.getDoc("orders/o1")).paid === true, "commande payée depuis le message");
   await page.waitForSelector(`${card("o1")} .tag.ok`);
@@ -129,7 +130,7 @@ test("annulation : confirmation, stock remis, même si un produit a été suppri
   await confirmYes(page);
   await until(async () => (await emu.getDoc("orders/o2")).status === "annulée", "commande annulée");
   assert.equal((await emu.getDoc("products/chips")).stock, 21);
-  assert.equal(await lastToast(page), "Commande annulée, le stock est remis en vente.");
+  await expectToast(page, "Commande annulée, le stock est remis en vente.");
 
   // Avant la refonte, l'annulation échouait entièrement si un produit de la commande avait été supprimé.
   await emu.setDoc("orders/o8", { ...ORDERS.o1, name: "Sam", items: [{ id: "fantome", name: "Produit retiré", priceCents: 100, qty: 1 }, { id: "oasis", name: "Oasis Tropical 33 cl", priceCents: 110, qty: 2 }], createdAt: ago(1) });
@@ -139,7 +140,7 @@ test("annulation : confirmation, stock remis, même si un produit a été suppri
   await until(async () => (await emu.getDoc("orders/o8")).status === "annulée", "commande annulée malgré le produit supprimé");
   assert.equal((await emu.getDoc("products/oasis")).stock, 14);
   assert.equal(await emu.getDoc("products/fantome"), null, "aucun produit fantôme recréé");
-  assert.equal(await lastToast(page), "Commande annulée. Stock non remis pour Produit retiré (produit supprimé).");
+  await expectToast(page, "Commande annulée. Stock non remis pour Produit retiré (produit supprimé).");
 });
 
 test("suppression d'une commande terminée, après confirmation", async () => {
@@ -156,7 +157,7 @@ test("nouvelle commande en direct : message, mise en avant ; une ancienne ne dé
   await page.waitForSelector(card("o1"));
   await emu.setDoc("orders/o9", { ...ORDERS.o1, name: "Zoé", room: "301", createdAt: new Date(NOW.getTime() + 60000) });
   await page.waitForSelector(`${card("o9")}.fresh`);
-  assert.equal(await lastToast(page), "Nouvelle commande : Zoé · ch. 301");
+  await expectToast(page, "Nouvelle commande : Zoé · ch. 301");
   assert.equal(await page.title(), "(2) Admin · Commandes");
   const before = await page.$$eval(".toast", els => els.length);
   await emu.setDoc("orders/o10", { ...ORDERS.o1, name: "Ancien", createdAt: ago(600) });
@@ -181,7 +182,7 @@ test("rendu de monnaie : à rendre, détail des pièces, montant insuffisant, en
   assert.equal(await text(page, "#change strong"), "Le compte est bon");
   await page.click("#paid");
   await until(async () => (await emu.getDoc("orders/o2")).paid === true, "commande payée");
-  assert.equal(await lastToast(page), "Commande de Tom marquée payée.");
+  await expectToast(page, "Commande de Tom marquée payée.");
 });
 
 test("historique d'un client : commandes, totaux, habitudes, même chambre", async () => {
@@ -220,7 +221,7 @@ test("produits : ajout avec image, recherche, modification, réassort, suppressi
   assert.equal(added.category, "Boissons");
   assert.match(added.image, /^data:image\/jpeg;base64,/);
   assert.ok(added.image.length < 60000, "image réduite (" + added.image.length + " caractères)");
-  assert.equal(await lastToast(page), "« Capri-Sun » ajouté à la boutique.");
+  await expectToast(page, "« Capri-Sun » ajouté à la boutique.");
 
   // Recherche (plus de 8 produits)
   await page.waitForSelector("#search:not([hidden])");
@@ -256,7 +257,7 @@ test("produits : ajout avec image, recherche, modification, réassort, suppressi
   await page.click('dialog [data-add="12"]');
   await page.click("#do-restock");
   await until(async () => (await emu.getDoc("products/chips")).stock === 32, "réassort");
-  assert.equal(await lastToast(page), "12 ajoutés au stock de « Chips Lay's nature ».");
+  await expectToast(page, "12 ajoutés au stock de « Chips Lay's nature ».");
 
   // Retrait de l'image
   await page.click(`.prod[data-id="${added.id}"] summary`);
@@ -276,11 +277,11 @@ test("produits : saisies invalides refusées", async () => {
   await page.click('.prod[data-id="coca"] summary');
   await page.fill('.prod[data-id="coca"] [data-f="name"]', "   ");
   await page.click('.prod[data-id="coca"] [data-p="save"]');
-  assert.equal(await lastToast(page), "Le nom du produit ne peut pas être vide.");
+  await expectToast(page, "Le nom du produit ne peut pas être vide.");
   await page.fill('.prod[data-id="coca"] [data-f="name"]', "Coca-Cola 33 cl");
   await page.fill('.prod[data-id="coca"] [data-f="stock"]', "2.5");
   await page.click('.prod[data-id="coca"] [data-p="save"]');
-  assert.equal(await lastToast(page), "Le stock doit être un nombre entier positif.");
+  await expectToast(page, "Le stock doit être un nombre entier positif.");
   const { id, ...coca } = await emu.getDoc("products/coca");
   assert.deepEqual(coca, PRODUCTS.coca, "rien n'a été enregistré");
 });
@@ -311,7 +312,7 @@ test("boutique : ouverture manuelle, horaires du jour, retour à l'automatique",
   await page.fill("#cf", "21:00");
   await page.fill("#ct", "20:00");
   await page.click("#m-custom");
-  assert.equal(await lastToast(page), "L'heure de fermeture doit être après l'heure d'ouverture.");
+  await expectToast(page, "L'heure de fermeture doit être après l'heure d'ouverture.");
   assert.equal((await emu.getDoc("settings/shop")).mode, "open");
   await page.fill("#cf", "15:00");
   await page.fill("#ct", "23:15");
@@ -339,7 +340,7 @@ test("bannière d'annonce : préremplie, enregistrée, jamais écrasée pendant 
   await page.click("#an-save");
   await until(async () => (await emu.getDoc("settings/announce")).text === "Nouveau : Oasis Pomme à 1,10 € !", "annonce enregistrée");
   assert.equal((await emu.getDoc("settings/announce")).on, true);
-  assert.equal(await lastToast(page), "Annonce affichée sur le site.");
+  await expectToast(page, "Annonce affichée sur le site.");
 });
 
 test("sécurité : le contenu d'une commande s'affiche comme du texte", async () => {
