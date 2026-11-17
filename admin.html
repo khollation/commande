@@ -2,243 +2,140 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>Admin · Commandes</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&display=swap" rel="stylesheet">
-<script>try{var t=localStorage.getItem("theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<meta name="theme-color" content="#F5F7FA">
+<link rel="manifest" href="admin.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/admin-192.png">
+<link rel="apple-touch-icon" href="icons/admin-apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kh. Admin">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preload" href="fonts/bricolage-grotesque-latin.woff2" as="font" type="font/woff2" crossorigin>
+<script>try{var d=document.documentElement,t=localStorage.getItem("theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");d.dataset.theme=t;if(t==="dark")document.querySelector('meta[name="theme-color"]').content="#0E1626";var s=localStorage.getItem("season");if(s)d.dataset.season=s}catch(e){}</script>
 <link rel="stylesheet" href="style.css">
+<link rel="modulepreload" href="config.js">
+<link rel="modulepreload" href="js/core.js">
+<link rel="modulepreload" href="js/ui.js">
+<link rel="modulepreload" href="js/pwa.js">
+<link rel="modulepreload" href="js/firebase.js">
+<link rel="modulepreload" href="js/auth.js">
+<link rel="modulepreload" href="vendor/firebase/firebase-app.js">
+<link rel="modulepreload" href="vendor/firebase/firebase-firestore.js">
+<link rel="modulepreload" href="vendor/firebase/firebase-auth.js">
 </head>
-<body style="padding-bottom:2rem">
-<button id="theme" class="theme-btn" type="button" aria-label="Changer de thème">🌙</button>  
-<header><h1>Admin</h1></header>
+<body class="admin">
+<header class="hero">
+  <button id="theme" class="icon-btn theme-btn" type="button" aria-label="Changer de thème">
+  <svg class="i-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+  <svg class="i-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+</button>
+  <div class="brand"><img class="app-ico" src="icons/admin-192.png" alt="" width="38" height="38"><h1 id="page-title">Admin</h1></div>
+</header>
+
 <main>
-  <form id="login">
+  <p id="boot" class="note boot">Chargement…</p>
+
+  <form id="login" class="card login" hidden>
+    <h2>Connexion</h2>
     <label for="em">E-mail</label><input id="em" type="email" required autocomplete="username">
     <label for="pw">Mot de passe</label><input id="pw" type="password" required autocomplete="current-password">
     <p class="msg" id="lerr" role="alert"></p>
-    <button class="btn">Se connecter</button>
+    <div class="actions"><button class="btn">Se connecter</button></div>
   </form>
 
   <div id="panel" hidden>
-    <button class="btn alt sm" id="out">Se déconnecter</button>
-    <a class="btn alt sm" href="compta.html" style="text-decoration:none;display:inline-block">Compta</a>  
-    <h2>Ouverture</h2>
-    <div id="shopinfo" class="status"></div>
-    <div class="chips">
-      <button class="btn sm alt" id="m-auto">Automatique</button>
-      <button class="btn sm" id="m-open">Ouvrir maintenant</button>
-      <button class="btn sm red" id="m-closed">Fermer maintenant</button>
-    </div>
-    <div class="chips" style="align-items:center">
-      <span>Horaires du jour :</span>
-      <input id="cf" type="time" value="15:00" style="width:auto" aria-label="Ouverture">
-      <span>à</span>
-      <input id="ct" type="time" value="22:30" style="width:auto" aria-label="Fermeture">
-      <button class="btn sm" id="m-custom">Appliquer</button>
-    </div>    
-    <h2>Bannière d'annonce</h2>
-    <input id="an-text" type="text" maxlength="120" placeholder="Ex : Nouveau : Oasis Pomme Cassis Framboise à 1,10 € !" aria-label="Texte de l'annonce">
-    <div class="chips" style="align-items:center">
-      <label style="margin:0;display:flex;gap:.4rem;align-items:center;font-weight:500"><input type="checkbox" id="an-on"> Afficher sur le site</label>
-      <button class="btn sm" id="an-save">Enregistrer</button>
-    </div>    
-    <h2>Commandes</h2>
-    <div id="filters" class="chips" role="group" aria-label="Filtrer les commandes"></div>    
-    <div id="orders"></div>
-    <h2>Produits</h2>
-    <form id="add" class="prow" style="border:0">
-      <input id="ae" type="text" placeholder="🥤" maxlength="4" aria-label="Emoji">
-      <input id="an" type="text" placeholder="Nom du produit" required aria-label="Nom">
-      <input id="ap" type="number" step="0.01" min="0" placeholder="Prix €" required aria-label="Prix en euros">
-      <input id="as" type="number" min="0" placeholder="Stock" required aria-label="Stock">
-      <button class="btn sm">Ajouter</button>
-      <select id="ac" aria-label="Catégorie" style="grid-column:1/-1"></select>
-      <label style="grid-column:1/-1;margin:0">Image (optionnelle)<input id="ai" type="file" accept="image/*"></label>
-    </form>
-    <div id="products"></div>
+    <!-- ═════════ Commandes ═════════ -->
+    <section id="tab-commandes" class="tab">
+      <h2 class="sr">Commandes</h2>
+      <div id="today" class="kpis"></div>
+      <button id="lowstock" class="alert" type="button" hidden></button>
+      <div id="filters" class="chips" role="group" aria-label="Filtrer les commandes"></div>
+      <div id="orders" class="orders"></div>
+      <div class="center"><button id="more" class="btn alt sm" type="button" hidden>Afficher les commandes plus anciennes</button></div>
+    </section>
+
+    <!-- ═════════ Produits ═════════ -->
+    <section id="tab-produits" class="tab" hidden>
+      <h2 class="sr">Produits</h2>
+      <details class="card fold" id="add-box">
+        <summary>Ajouter un produit</summary>
+        <form id="add">
+          <div class="row-emoji">
+            <div><label for="ae">Emoji</label><input id="ae" type="text" placeholder="🥤" maxlength="10"></div>
+            <div><label for="an">Nom</label><input id="an" type="text" placeholder="Nom du produit" maxlength="60" required></div>
+          </div>
+          <div class="row2 even">
+            <div><label for="ap">Prix (€)</label><input id="ap" type="number" inputmode="decimal" step="0.01" min="0" placeholder="1,10" required></div>
+            <div><label for="as">Stock</label><input id="as" type="number" inputmode="numeric" step="1" min="0" placeholder="12" required></div>
+          </div>
+          <label for="ac">Catégorie</label><select id="ac"></select>
+          <label for="ai">Image <span class="opt">(facultative)</span></label><input id="ai" type="file" accept="image/*">
+          <div class="actions"><button class="btn">Ajouter le produit</button></div>
+        </form>
+      </details>
+      <input id="search" type="search" placeholder="Rechercher un produit…" aria-label="Rechercher un produit" hidden>
+      <div id="products" class="products"></div>
+    </section>
+
+    <!-- ═════════ Boutique ═════════ -->
+    <section id="tab-boutique" class="tab" hidden>
+      <h2>Ouverture</h2>
+      <div id="shopinfo" class="status"></div>
+      <div class="chips" id="modes">
+        <button class="btn sm alt" type="button" id="m-auto">Automatique</button>
+        <button class="btn sm" type="button" id="m-open">Ouvrir maintenant</button>
+        <button class="btn sm red" type="button" id="m-closed">Fermer maintenant</button>
+      </div>
+      <div class="custom">
+        <span>Horaires du jour :</span>
+        <div class="custom-row">
+          <input id="cf" type="time" value="15:00" aria-label="Ouverture">
+          <span>à</span>
+          <input id="ct" type="time" value="22:30" aria-label="Fermeture">
+          <button class="btn sm" type="button" id="m-custom">Appliquer</button>
+        </div>
+      </div>
+      <p class="note">Un réglage manuel ne vaut que pour aujourd'hui : demain, la boutique reprend ses horaires habituels.</p>
+      <details class="fold">
+        <summary>Horaires habituels</summary>
+        <table id="schedule" class="table"></table>
+        <p class="note">Pour les modifier : fichier <code>config.js</code>.</p>
+      </details>
+
+      <h2>Bannière d'annonce</h2>
+      <input id="an-text" type="text" maxlength="120" placeholder="Ex : Nouveau : Oasis Pomme Cassis Framboise à 1,10 € !" aria-label="Texte de l'annonce">
+      <div class="rowline">
+        <label class="check"><input type="checkbox" id="an-on"> Afficher sur le site</label>
+        <button class="btn sm" type="button" id="an-save">Enregistrer</button>
+      </div>
+
+      <h2>Alertes</h2>
+      <div class="rowline">
+        <label class="check"><input type="checkbox" id="snd"> Son à chaque nouvelle commande</label>
+        <button class="btn sm alt" type="button" id="snd-test">Tester</button>
+      </div>
+
+      <h2>Compte</h2>
+      <p>Connecté : <strong id="who"></strong></p>
+      <div class="chips">
+        <a class="btn sm alt" href="./">Voir la boutique</a>
+        <button class="btn sm alt" type="button" data-install data-install-link hidden>Installer l'appli Admin</button>
+        <button class="btn sm alt" type="button" id="out">Se déconnecter</button>
+      </div>
+    </section>
   </div>
 </main>
 
-<script type="module">
-import { db, auth, esc, eur, CATEGORIES, shopStatus, todayKey } from "./config.js";
-import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import { collection, onSnapshot, query, orderBy, limit, doc, updateDoc, deleteDoc, addDoc, setDoc, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+<nav id="tabs" class="tabbar" aria-label="Sections de l'admin" hidden>
+  <a href="admin.html#commandes" data-tab="commandes" aria-current="page"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span>Commandes</span><b id="n-new" class="pill" hidden></b></a>
+  <a href="admin.html#produits" data-tab="produits"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 8-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg><span>Produits</span></a>
+  <a href="admin.html#boutique" data-tab="boutique"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 9 1-5h14l1 5"/><path d="M4 9a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0A2.7 2.7 0 0 0 20 9"/><path d="M5 12v8h14v-8"/><path d="M10 20v-5h4v5"/></svg><span>Boutique</span></a>
+  <a href="compta.html"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 20h20"/><path d="M6 20v-8M12 20V5M18 20v-5"/></svg><span>Compta</span></a>
+</nav>
 
-const $ = s => document.querySelector(s);
-// Thème clair / sombre
-const themeBtn = $("#theme");
-function applyTheme(t) {
-  document.documentElement.dataset.theme = t;
-  themeBtn.textContent = t === "dark" ? "☀️" : "🌙";
-  themeBtn.setAttribute("aria-label", t === "dark" ? "Passer au thème clair" : "Passer au thème sombre");
-}
-applyTheme(document.documentElement.dataset.theme || "light");
-themeBtn.onclick = () => {
-  const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-  applyTheme(t);
-  try { localStorage.setItem("theme", t); } catch {}
-};
-let orders = [], products = [], unsubs = [], ctx, first = true;
-let settings = null;
-function renderShop() {
-  const s = shopStatus(settings);
-  $("#shopinfo").textContent = (s.open ? "🟢 " : "🔴 ") + s.text + (s.mode !== "auto" ? " (réglage manuel du jour)" : "");
-  $("#shopinfo").className = "status " + (s.open ? "open" : "closed");
-}
-setInterval(renderShop, 30000);
-const setMode = async patch => {
-  try { await setDoc(doc(db, "settings", "shop"), { date: todayKey(new Date()), ...patch }); }
-  catch (err) { alert("Réglage impossible : " + err.message); }
-};
-$("#an-save").onclick = async () => {
-  try { await setDoc(doc(db, "settings", "announce"), { text: $("#an-text").value.trim(), on: $("#an-on").checked }); }
-  catch (err) { alert("Enregistrement impossible : " + err.message); }
-};
-$("#m-auto").onclick = () => setMode({ mode: "auto" });
-$("#m-open").onclick = () => setMode({ mode: "open" });
-$("#m-closed").onclick = () => setMode({ mode: "closed" });
-$("#m-custom").onclick = () => {
-  const from = $("#cf").value, to = $("#ct").value;
-  if (!from || !to || to <= from) return alert("L'heure de fermeture doit être après l'heure d'ouverture.");
-  setMode({ mode: "custom", from, to });
-};
-let filter = "toutes";
-const FILTERS = [
-  ["toutes", "Toutes", () => true],
-  ["nouvelle", "Nouvelles", o => o.status === "nouvelle"],
-  ["validée", "À livrer", o => o.status === "validée"],
-  ["impayées", "Non payées", o => !o.paid && o.status !== "annulée"],
-  ["livrée", "Livrées", o => o.status === "livrée"]
-];
-$("#ac").innerHTML = CATEGORIES.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
-
-$("#login").onsubmit = async e => {
-  e.preventDefault(); $("#lerr").textContent = "";
-  ctx = new (window.AudioContext || window.webkitAudioContext)();
-  try { await signInWithEmailAndPassword(auth, $("#em").value, $("#pw").value); }
-  catch { $("#lerr").textContent = "E-mail ou mot de passe incorrect."; }
-};
-$("#out").onclick = () => signOut(auth);
-
-onAuthStateChanged(auth, user => {
-  unsubs.forEach(u => u()); unsubs = []; first = true;
-  $("#login").hidden = !!user; $("#panel").hidden = !user;
-  if (!user) return;
-  unsubs.push(onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(100)), snap => {
-    orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    if (!first && snap.docChanges().some(c => c.type === "added" && !c.doc.metadata.hasPendingWrites)) beep();
-    first = false; renderOrders();
-  }));
-  unsubs.push(onSnapshot(query(collection(db, "products"), orderBy("name")), snap => {
-    products = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderProducts();
-  }));
-  unsubs.push(onSnapshot(doc(db, "settings", "shop"), s => { settings = s.exists() ? s.data() : null; renderShop(); }, err => { $("#shopinfo").textContent = "Erreur : " + err.message; }));});
-  unsubs.push(onSnapshot(doc(db, "settings", "announce"), s => { const d = s.exists() ? s.data() : {}; $("#an-text").value = d.text || ""; $("#an-on").checked = !!d.on; }));
-function beep() {
-  try { const o = ctx.createOscillator(); o.frequency.value = 880; o.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 0.3); } catch {}
-}
-
-function renderOrders() {
-  const n = orders.filter(o => o.status === "nouvelle").length;
-  document.title = (n ? `(${n}) ` : "") + "Admin · Commandes";
-  $("#filters").innerHTML = FILTERS.map(([k, label, fn]) => `<button class="btn sm ${k === filter ? "" : "alt"}" data-filter="${k}">${label} (${orders.filter(fn).length})</button>`).join("");
-  const shown = orders.filter(FILTERS.find(f => f[0] === filter)[2]);  
-  $("#orders").innerHTML = shown.length ? shown.map(o => {
-    const date = o.createdAt ? o.createdAt.toDate().toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "…";
-    const btn = (act, label, cls = "") => `<button class="btn sm ${cls}" data-act="${act}" data-id="${o.id}">${label}</button>`;
-    return `<div class="order ${o.status}">
-      <div class="top"><span>${esc(o.name)} · ch. ${esc(o.room)}</span><span>${eur(o.totalCents)}</span></div>
-      <div class="stock">${date} · ${o.payment === "wero" ? "Wero" : "Espèces"}</div>
-      <div class="deliv">🕒 Livraison souhaitée : <strong>${esc(o.deliveryTime || "non précisée")}</strong></div>
-      ${o.comment ? `<div class="comment">💬 ${esc(o.comment)}</div>` : ""}      
-      <ul>${o.items.map(i => `<li>${i.qty} × ${esc(i.name)}</li>`).join("")}</ul>
-      <div class="chips"><span class="tag">${esc(o.status)}</span><span class="tag ${o.paid ? "ok" : ""}">${o.paid ? "payée" : "non payée"}</span></div>
-      <div class="chips">
-        ${o.status === "nouvelle" ? btn("valider", "Valider") : ""}
-        ${o.status === "validée" ? btn("livrer", "Livrée") : ""}
-        ${o.status !== "annulée" ? btn("payer", o.paid ? "Marquer non payée" : "Marquer payée", "alt") : ""}
-        ${o.status === "nouvelle" || o.status === "validée" ? btn("annuler", "Annuler", "red") : ""}
-        ${o.status === "livrée" || o.status === "annulée" ? btn("suppr", "Supprimer", "alt") : ""}
-      </div></div>`;
-  }).join("") : "<p>Aucune commande dans cette catégorie.</p>";
-}
-
-$("#filters").addEventListener("click", e => {
-  const b = e.target.closest("[data-filter]"); if (!b) return;
-  filter = b.dataset.filter; renderOrders();
-});
-$("#orders").addEventListener("click", async e => {
-  const b = e.target.closest("[data-act]"); if (!b) return;
-  const o = orders.find(x => x.id === b.dataset.id), act = b.dataset.act, ref = doc(db, "orders", o.id);
-  try {
-    if (act === "valider") await updateDoc(ref, { status: "validée" });
-    else if (act === "annuler") {
-      const batch = writeBatch(db);
-      o.items.forEach(i => batch.update(doc(db, "products", i.id), { stock: increment(i.qty) }));
-      batch.update(ref, { status: "annulée" });
-      await batch.commit();
-    }
-    else if (act === "livrer") await updateDoc(ref, { status: "livrée" });
-    else if (act === "payer") await updateDoc(ref, { paid: !o.paid });
-    else if (act === "suppr" && confirm("Supprimer cette commande ?")) await deleteDoc(ref);
-  } catch (err) { alert("Action impossible : " + err.message); }
-});
-
-function resize(file, size = 240) {
-  return new Promise((res, rej) => {
-    const img = new Image(), url = URL.createObjectURL(file);
-    img.onload = () => {
-      const c = document.createElement("canvas"); c.width = c.height = size;
-      const g = c.getContext("2d"), s = Math.min(img.width, img.height);
-      g.fillStyle = "#fff"; g.fillRect(0, 0, size, size);
-      g.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
-      URL.revokeObjectURL(url); res(c.toDataURL("image/jpeg", 0.8));
-    };
-    img.onerror = () => rej(new Error("Image illisible"));
-    img.src = url;
-  });
-}
-
-function renderProducts() {
-  $("#products").innerHTML = products.map(p => `<div class="prow" data-id="${p.id}">
-    <label class="thumb" title="Changer l'image">${p.image ? `<img class="pimg" src="${esc(p.image)}" alt="">` : `<span class="emoji" style="font-size:1.5rem">${esc(p.emoji || "🥤")}</span>`}<input type="file" accept="image/*" data-f="img" hidden></label>
-    <span class="name">${esc(p.name)}</span>
-    <input type="number" step="0.01" min="0" value="${(p.priceCents / 100).toFixed(2)}" data-f="price" aria-label="Prix de ${esc(p.name)}">
-    <input type="number" min="0" value="${p.stock}" data-f="stock" aria-label="Stock de ${esc(p.name)}">
-    <button class="btn sm" data-p="save">Enregistrer</button>
-    <button class="btn sm red" data-p="del">Supprimer</button>
-    <select data-f="badge" style="grid-column:1/-1" aria-label="Badge de ${esc(p.name)}">${[["", "Aucun badge"], ["new", "Badge Nouveau"], ["promo", "Badge Promo"]].map(([v, l]) => `<option value="${v}" ${(p.badge || "") === v ? "selected" : ""}>${l}</option>`).join("")}</select>    
-    <select data-f="cat" style="grid-column:1/-1" aria-label="Catégorie de ${esc(p.name)}">${["", ...CATEGORIES].map(c => `<option value="${esc(c)}" ${(p.category || "") === c ? "selected" : ""}>${c ? esc(c) : "Autres (sans catégorie)"}</option>`).join("")}</select></div>`).join("");
-}
-
-$("#products").addEventListener("click", async e => {
-  const b = e.target.closest("[data-p]"); if (!b) return;
-  const row = b.closest(".prow"), ref = doc(db, "products", row.dataset.id);
-  try {
-    if (b.dataset.p === "save") await updateDoc(ref, { priceCents: Math.round(row.querySelector('[data-f="price"]').value * 100), stock: Math.max(0, parseInt(row.querySelector('[data-f="stock"]').value, 10) || 0) });
-    else if (confirm("Supprimer ce produit ?")) await deleteDoc(ref);
-  } catch (err) { alert("Action impossible : " + err.message); }
-});
-
-$("#products").addEventListener("change", async e => {
-  const el = e.target, ref = () => doc(db, "products", el.closest(".prow").dataset.id);
-  try {
-    if (el.dataset.f === "img" && el.files[0]) await updateDoc(ref(), { image: await resize(el.files[0]) });
-    else if (el.dataset.f === "cat") await updateDoc(ref(), { category: el.value });
-    else if (el.dataset.f === "badge") await updateDoc(ref(), { badge: el.value });    
-  } catch (err) { alert("Modification impossible : " + err.message); }
-});
-  
-$("#add").onsubmit = async e => {
-  e.preventDefault();
-  try {
-    const file = $("#ai").files[0], image = file ? await resize(file) : "";
-    await addDoc(collection(db, "products"), { emoji: $("#ae").value.trim() || "🥤", name: $("#an").value.trim(), priceCents: Math.round($("#ap").value * 100), stock: parseInt($("#as").value, 10) || 0, image, category: $("#ac").value });
-    e.target.reset();
-  } catch (err) { alert("Ajout impossible : " + err.message); }
-};
-</script>
+<script type="module" src="js/admin.js"></script>
 </body>
 </html>
