@@ -1,0 +1,20 @@
+{
+  "name": "khollation-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Applications Android et iOS de La Khôllation (coquille Capacitor qui affiche le site)",
+  "scripts": {
+    "android": "cap add android && capacitor-assets generate --android",
+    "ios": "cap add ios && capacitor-assets generate --ios",
+    "sync": "cap sync"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.6.2",
+    "@capacitor/core": "8.6.2",
+    "@capacitor/ios": "8.6.2"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "4.0.0",
+    "@capacitor/cli": "8.6.2"
+  }
+}

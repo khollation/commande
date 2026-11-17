@@ -75,14 +75,6 @@ const cleanProduct = (id, d) => ({
   badge: d.badge || ""
 });
 
-// Copie locale du catalogue : affichage immédiat à l'ouverture, puis remplacement par les données en direct.
-(function showSavedCatalog() {
-  const saved = store.json(CATALOG_KEY);
-  if (!saved || !Array.isArray(saved.list) || Date.now() - saved.at > 7 * 864e5) return;
-  products = saved.list.map(p => cleanProduct(p.id, p));
-  if (products.length) render();
-})();
-
 let saveTimer;
 function saveCatalog() {
   clearTimeout(saveTimer);
@@ -218,6 +210,16 @@ function render() {
   renderCats(renderList());
   renderBar();
 }
+
+// Copie locale du catalogue : affichage immédiat à l'ouverture, puis remplacement par les données en direct.
+function showSavedCatalog() {
+  const saved = store.json(CATALOG_KEY);
+  if (!saved || !Array.isArray(saved.list) || Date.now() - saved.at > 7 * 864e5) return;
+  products = saved.list.map(p => cleanProduct(p.id, p));
+  if (products.length) render();
+}
+// (appelée seulement ici : l'affichage a besoin de tout ce qui est déclaré au-dessus)
+showSavedCatalog();
 
 // Boutons + et −
 list.addEventListener("click", e => {
