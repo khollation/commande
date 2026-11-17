@@ -1,0 +1,19 @@
+{
+  "appId": "io.github.khollation.commande",
+  "appName": "La Khôllation",
+  "webDir": "www",
+  "backgroundColor": "#F5F7FA",
+  "server": {
+    "url": "https://khollation.github.io/commande/",
+    "errorPath": "offline.html"
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "initialViewportFitValueHint": "cover"
+    }
+  },
+  "ios": {
+    "contentInset": "never"
+  }
+}

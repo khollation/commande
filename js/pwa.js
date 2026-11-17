@@ -90,6 +90,19 @@ export function initPwa({ name } = {}) {
     if (document.readyState === "complete") register(); else addEventListener("load", register);
   }
 
+  // Application Android : le bouton « retour » ferme d'abord la fenêtre ouverte, puis revient
+  // à la page précédente, et quitte l'application depuis la première page.
+  if (isNative() && typeof window.Capacitor.addListener === "function") {
+    try {
+      window.Capacitor.addListener("App", "backButton", data => {
+        const open = [...document.querySelectorAll("dialog[open]")].pop();
+        if (open) open.close();
+        else if (data && data.canGoBack) history.back();
+        else window.Capacitor.nativePromise("App", "exitApp", {}).catch(() => {});
+      });
+    } catch {}
+  }
+
   addEventListener("beforeinstallprompt", e => { e.preventDefault(); promptEvent = e; refresh(); });
   addEventListener("appinstalled", () => { promptEvent = null; refresh(); });
   document.addEventListener("click", e => {
