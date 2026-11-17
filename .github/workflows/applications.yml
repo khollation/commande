@@ -83,6 +83,16 @@ jobs:
           fi
           ls -l ../khollation.apk
 
+      - name: Vérifier l'APK
+        run: |
+          TOOLS="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+          "$TOOLS/aapt2" dump badging khollation.apk | grep -E "^(package|application-label|application-icon-640|sdkVersion|targetSdkVersion|uses-permission|launchable-activity)"
+          "$TOOLS/apksigner" verify --print-certs khollation.apk | grep -E "Signer #1 certificate (DN|SHA-256)"
+          unzip -p khollation.apk assets/capacitor.config.json
+          unzip -l khollation.apk | grep -E "assets/public/|res/mipmap-xxxhdpi" | head
+          "$TOOLS/aapt2" dump badging khollation.apk | grep -q "package: name='io.github.khollation.commande'"
+          unzip -p khollation.apk assets/capacitor.config.json | grep -q '"url": "https://khollation.github.io/commande/"'
+
       - uses: actions/upload-artifact@v4
         with:
           name: khollation-android
@@ -133,6 +143,13 @@ jobs:
           cp -R build/Build/Products/Release-iphoneos/App.app Payload/
           zip -qry khollation-ios-non-signee.ipa Payload
           ls -l khollation-ios-non-signee.ipa
+
+      - name: Vérifier l'application iOS
+        run: |
+          plutil -p Payload/App.app/Info.plist | grep -E "CFBundle(Identifier|DisplayName|ShortVersionString|Version|IconName)|MinimumOSVersion"
+          cat Payload/App.app/capacitor.config.json
+          grep -q '"url": "https://khollation.github.io/commande/"' Payload/App.app/capacitor.config.json
+          ls Payload/App.app | grep -iE "AppIcon|Assets.car|public" 
 
       - uses: actions/upload-artifact@v4
         with:
