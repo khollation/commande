@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La Khôllation</title>
+<link rel="icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script>try{var t=localStorage.getItem("theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<button id="theme" class="theme-btn" type="button" aria-label="Changer de thème">🌙</button>
+<header>
+  <h1 id="title">La Khôllation</h1>
+  <p class="sub">Choisis tes produits, commande, puis paie à la livraison (espèces ou en Wero).</p>
+</header>
+<main>
+<a class="insta" href="https://www.instagram.com/khollation" target="_blank" rel="noopener">
+  <span class="insta-ico"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="#fff" stroke="none"/></svg></span>
+  <span class="insta-txt"><strong>@khollation</strong><small>Nouveautés et promos en direct</small></span>
+  <span class="insta-btn">Suivre</span>
+</a>
+<div id="announce" class="announce" hidden></div>
+<div id="shopstatus" class="status" role="status"></div>
+<div id="list" aria-live="polite">Chargement…</div>
+</main>
+
+<div class="bar"><div><strong id="count">0 article</strong> · <span id="total">0,00 €</span></div><button class="btn" id="open" disabled>Commander</button></div>
+
+<dialog id="dlg">
+  <form id="form">
+    <h2 style="margin-top:0">Ta commande</h2>
+    <div id="recap"></div>
+    <label for="name">Prénom</label><input id="name" name="name" type="text" maxlength="30" required>
+    <label for="room">Chambre</label><input id="room" name="room" type="text" maxlength="10" required>
+    <label for="time">Heure de livraison souhaitée</label><input id="time" name="time" type="time" required>
+    <p class="note">Indicatif : il peut y avoir un peu de retard.</p>
+    <label for="comment">Commentaire (facultatif)</label><textarea id="comment" name="comment" maxlength="200" rows="2" placeholder="Une précision ?"></textarea>    
+    <div class="radios"><label><input type="radio" name="payment" value="wero"> Wero : je scanne le QR code à la livraison</label><label><input type="radio" name="payment" value="especes" checked> Je paie en espèces</label></div>
+    <p class="msg" id="err" role="alert"></p>
+    <div style="display:flex;gap:.5rem;justify-content:flex-end"><button type="button" class="btn alt" id="cancel">Retour</button><button class="btn" id="send">Envoyer la commande</button></div>
+  </form>
+  <div id="done" hidden></div>
+</dialog>
+
+<script type="module">
+import { db, SHOP, esc, eur, CATEGORIES, shopStatus, toMin, LAST_DELIVERY } from "./config.js";
+import { collection, onSnapshot, serverTimestamp, query, orderBy, doc, runTransaction } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+const $ = s => document.querySelector(s);
+let products = [], cart = {};
+
+// Notification push sur ton iPhone (app ntfy) à chaque nouvelle commande
+const NTFY_TOPIC = "khollation-13a10g";
+function notifyAdmin(n, total, time) {
+  fetch("https://ntfy.sh/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      topic: NTFY_TOPIC,
+      title: "Nouvelle commande 🛎️",
+      message: `${n} article${n > 1 ? "s" : ""} · ${eur(total)} · livraison vers ${time}`,
+      priority: 4,
+      tags: ["shopping_cart"],
+      click: new URL("admin.html", location.href).href
+    })
+  }).catch(() => {});
+}
+
+$("#title").textContent = SHOP.name;
+// Thème clair / sombre
+const themeBtn = $("#theme");
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  themeBtn.textContent = t === "dark" ? "☀️" : "🌙";
+  themeBtn.setAttribute("aria-label", t === "dark" ? "Passer au thème clair" : "Passer au thème sombre");
+}
+applyTheme(document.documentElement.dataset.theme || "light");
+themeBtn.onclick = () => {
+  const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  applyTheme(t);
+  try { localStorage.setItem("theme", t); } catch {}
+};
+// Ouverture / fermeture
+let settings = null, shop = shopStatus(null);
+function syncOpen() {
+  const n = lines().reduce((s, i) => s + i.qty, 0);
+  $("#open").disabled = n === 0 || !shop.open;
+  $("#open").textContent = shop.open ? "Commander" : "Fermé";
+}
+function refreshShop() {
+  shop = shopStatus(settings);
+  const el = $("#shopstatus");
+  el.textContent = (shop.open ? "🟢 " : "🔴 ") + shop.text;
+  el.className = "status " + (shop.open ? "open" : "closed");
+  syncOpen();
+}
+onSnapshot(doc(db, "settings", "shop"), s => { settings = s.exists() ? s.data() : null; refreshShop(); }, () => refreshShop());
+setInterval(refreshShop, 30000);
+// Bannière d'annonce
+onSnapshot(doc(db, "settings", "announce"), s => {
+  const d = s.exists() ? s.data() : null, el = $("#announce");
+  el.hidden = !(d && d.on && d.text);
+  el.textContent = d && d.text ? "📣 " + d.text : "";
+}, () => {});
+
+try { $("#name").value = localStorage.getItem("snack_name") || ""; $("#room").value = localStorage.getItem("snack_room") || ""; } catch {}
+
+onSnapshot(query(collection(db, "products"), orderBy("name")), snap => {
+  products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  for (const id in cart) {
+    const p = products.find(x => x.id === id);
+    if (!p || p.stock < 1) delete cart[id]; else cart[id] = Math.min(cart[id], p.stock);
+  }
+  render();
+}, () => { $("#list").textContent = "Impossible de charger les produits. Recharge la page dans un instant."; });
+
+function lines() {
+  return Object.entries(cart).filter(([, q]) => q > 0).map(([id, qty]) => {
+    const p = products.find(x => x.id === id);
+    return { id, name: p.name, priceCents: p.priceCents, qty };
+  });
+}
+const totalCents = () => lines().reduce((s, i) => s + i.priceCents * i.qty, 0);
+
+function itemHtml(p) {
+  const q = cart[p.id] || 0, out = p.stock < 1;
+  return `<div class="item">
+      <div class="emoji">${p.image ? `<img class="pimg" src="${esc(p.image)}" alt="">` : esc(p.emoji || "🥤")}</div>
+      <div><div class="name">${esc(p.name)}${p.badge === "new" ? '<span class="badge new">Nouveau</span>' : p.badge === "promo" ? '<span class="badge promo">Promo</span>' : ""}</div><div class="stock ${p.stock <= 3 ? "low" : ""}">${out ? "Épuisé" : p.stock + " en stock"}</div></div>
+      <div class="right"><span class="price">${eur(p.priceCents)}</span>
+        <div class="step">${out ? "" : `<button data-id="${p.id}" data-d="-1" ${q ? "" : "disabled"} aria-label="Retirer ${esc(p.name)}">−</button><span>${q}</span><button data-id="${p.id}" data-d="1" ${q >= p.stock ? "disabled" : ""} aria-label="Ajouter ${esc(p.name)}">+</button>`}</div>
+      </div></div>`;
+}
+
+function render() {
+  const groups = [...CATEGORIES, "Autres"]
+    .map(c => ({ c, list: products.filter(p => (CATEGORIES.includes(p.category) ? p.category : "Autres") === c) }))
+    .filter(g => g.list.length);
+  $("#list").innerHTML = groups.length
+    ? groups.map(g => `<h2 class="cat">${esc(g.c)}</h2>` + g.list.map(itemHtml).join("")).join("")
+    : "<p>Aucun produit pour le moment, repasse bientôt.</p>";
+  const n = lines().reduce((s, i) => s + i.qty, 0);
+  $("#count").textContent = n + (n > 1 ? " articles" : " article");
+  $("#total").textContent = eur(totalCents());
+  syncOpen();
+}
+
+$("#list").addEventListener("click", e => {
+  const b = e.target.closest("button[data-id]"); if (!b) return;
+  const id = b.dataset.id, p = products.find(x => x.id === id);
+  cart[id] = Math.max(0, Math.min(p.stock, (cart[id] || 0) + Number(b.dataset.d)));
+  render();
+});
+
+$("#open").onclick = () => {
+  $("#recap").innerHTML = "<ul>" + lines().map(i => `<li>${i.qty} × ${esc(i.name)}</li>`).join("") + `</ul><p><strong>Total : ${eur(totalCents())}</strong></p>`;
+  $("#err").textContent = ""; $("#form").hidden = false; $("#done").hidden = true;
+  const now = new Date(); $("#time").min = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0"); $("#time").max = LAST_DELIVERY;  
+  $("#dlg").showModal();
+};
+$("#cancel").onclick = () => $("#dlg").close();
+
+$("#form").onsubmit = async e => {
+  e.preventDefault();
+  const f = new FormData(e.target), items = lines(), total = totalCents();
+  const name = f.get("name").trim(), room = f.get("room").trim(), payment = f.get("payment");
+  const deliveryTime = f.get("time"), comment = f.get("comment").trim();
+  const nowD = new Date();
+  if (!shopStatus(settings).open) { $("#err").textContent = "La boutique est fermée pour le moment."; return; }
+  if (toMin(deliveryTime) < nowD.getHours() * 60 + nowD.getMinutes() || toMin(deliveryTime) > toMin(LAST_DELIVERY)) { $("#err").textContent = "Choisis une heure de livraison entre maintenant et " + LAST_DELIVERY + "."; return; }  
+  $("#send").disabled = true;
+  try {
+    await runTransaction(db, async tx => {
+      const refs = items.map(i => doc(db, "products", i.id));
+      const snaps = await Promise.all(refs.map(r => tx.get(r)));
+      snaps.forEach((s, k) => {
+        if (!s.exists() || s.data().stock < items[k].qty) throw new Error("STOCK:" + items[k].name);
+      });
+      snaps.forEach((s, k) => tx.update(refs[k], { stock: s.data().stock - items[k].qty }));
+      tx.set(doc(collection(db, "orders")), { name, room, payment, items, totalCents: total, status: "nouvelle", paid: false, deliveryTime, comment, createdAt: serverTimestamp() });
+    });
+    try { localStorage.setItem("snack_name", name); localStorage.setItem("snack_room", room); } catch {}
+    notifyAdmin(items.reduce((s, i) => s + i.qty, 0), total, deliveryTime);
+    cart = {}; render();
+    $("#form").hidden = true; $("#done").hidden = false;
+    $("#done").innerHTML = `<h2 style="margin-top:0">Commande envoyée ✅</h2><p>Total à payer : <strong>${eur(total)}</strong></p><p>${payment === "wero" ? "Paiement en Wero : à la livraison, scanne le QR code Wero qui te sera présenté. Garde ton application prête." : "Prépare ton paiement en espèces, de préférence l'appoint."}</p><p>Livraison dans ta chambre (${esc(room)}) vers <strong>${esc(deliveryTime)}</strong>, avec un éventuel petit retard.</p><button class="btn" id="ok">Fermer</button>`;
+    $("#ok").onclick = () => $("#dlg").close();
+  } catch (err) {
+    $("#err").textContent = String(err.message).startsWith("STOCK:")
+      ? "Désolé, « " + err.message.slice(6) + " » vient d'être épuisé ou n'a plus assez de stock. Vérifie ton panier."
+      : "La commande n'est pas partie. Vérifie ta connexion et réessaie.";
+  }
+  $("#send").disabled = false;
+};
+</script>
+</body>
+</html>

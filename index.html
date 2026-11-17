@@ -2,199 +2,117 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>La Khôllation</title>
-<link rel="icon" href="logo.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&display=swap" rel="stylesheet">
-<script>try{var t=localStorage.getItem("theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
+<meta name="description" content="Commande tes snacks et boissons en ligne : livraison dans ta chambre, paiement à la livraison (espèces ou Wero).">
+<meta name="theme-color" content="#F5F7FA">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Khôllation">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta property="og:type" content="website">
+<meta property="og:title" content="La Khôllation">
+<meta property="og:description" content="Snacks et boissons, livrés dans ta chambre. Commande en ligne, paie à la livraison.">
+<meta property="og:url" content="https://khollation.github.io/commande/">
+<meta property="og:image" content="https://khollation.github.io/commande/icons/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preload" href="fonts/bricolage-grotesque-latin.woff2" as="font" type="font/woff2" crossorigin>
+<script>try{var d=document.documentElement,t=localStorage.getItem("theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");d.dataset.theme=t;if(t==="dark")document.querySelector('meta[name="theme-color"]').content="#0E1626";var s=localStorage.getItem("season");if(s)d.dataset.season=s}catch(e){}</script>
 <link rel="stylesheet" href="style.css">
+<link rel="modulepreload" href="config.js">
+<link rel="modulepreload" href="js/core.js">
+<link rel="modulepreload" href="js/ui.js">
+<link rel="modulepreload" href="js/pwa.js">
+<link rel="modulepreload" href="js/firebase.js">
+<link rel="modulepreload" href="vendor/firebase/firebase-app.js">
+<link rel="modulepreload" href="vendor/firebase/firebase-firestore.js">
 </head>
-<body>
-<button id="theme" class="theme-btn" type="button" aria-label="Changer de thème">🌙</button>
-<header>
-  <h1 id="title">La Khôllation</h1>
+<body class="shop">
+<header class="hero">
+  <button id="theme" class="icon-btn theme-btn" type="button" aria-label="Changer de thème">
+  <svg class="i-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+  <svg class="i-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+</button>
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9.6 99.9L1.8 99.9L1.8 99.7C1.7 99.6 1.7 98.3 1.7 97L1.7 94.5L2.8 93.2C3.4 92.6 4 91.9 4.2 91.7C4.4 91.5 4.8 91 5.1 90.7C5.5 90.3 6.1 89.6 6.5 89.1C7 88.6 7.9 87.6 8.6 86.9C9.2 86.1 10.2 85.1 10.7 84.6C11.1 84.1 11.8 83.3 12.2 82.9C12.6 82.5 13.3 81.7 13.8 81.2C14.2 80.6 15.2 79.5 15.9 78.7C16.6 77.9 17.5 76.9 17.9 76.5C18.2 76.2 18.9 75.3 19.5 74.7C20 74.1 20.8 73.2 21.2 72.7C21.6 72.3 22.4 71.4 22.9 70.8C23.4 70.2 24 69.5 24.1 69.3C24.3 69.2 24.7 68.7 25.1 68.2C25.5 67.7 26 67.1 26.3 66.8C26.8 66.3 27.8 65.2 28.2 64.7C29 63.6 30.5 61.9 30.9 61.5C31.2 61.2 31.6 60.7 31.9 60.3C32.2 60 32.8 59.3 33.2 58.8C34.6 57.2 36.4 55.2 37.1 54.3C37.5 53.8 38.1 53.1 38.3 52.8C38.6 52.5 38.8 52.3 38.8 52.2C38.8 52.2 38.1 51.2 36.9 49.7C36.4 49 35 47.1 33.8 45.5C32.6 44 31.4 42.3 31 41.9C30.6 41.4 30 40.5 29.6 40C29.1 39.4 28.2 38.2 27.5 37.3C26.8 36.4 26 35.4 25.8 35C25.5 34.6 24.8 33.8 24.3 33.1C23.8 32.4 22.6 30.9 21.6 29.6C20.7 28.4 19.6 26.9 19.1 26.4C18.7 25.8 18.3 25.2 18.1 25C17.9 24.8 17.3 24 16.8 23.3C16.2 22.5 15.3 21.4 14.9 20.9C13.6 19.1 12 17.1 11 15.8C10.5 15.2 9.7 14.2 9.3 13.7C8.9 13.2 8.2 12.3 7.8 11.8C6.3 9.8 4 7 3.4 6.2L2.8 5.4L2.8 2.7L2.8 0.1L37.9 0C57.2 0 73.1 0 73.2 0L73.4 0.1L73.2 0.9C72.7 3 73.4 5.1 74.9 6.2L75.2 6.4L75 6.9C74.3 8.3 74.2 10 74.6 11.3C75.2 13.1 77 14.8 78.9 15.3L79.4 15.4L79.4 16.5C79.2 20 81.3 22.8 84.8 24C86.1 24.4 86 24.2 86 25.6L86 26.8L85.1 26.9C82.2 27.1 78.4 26.4 75.6 24.9C71.5 22.9 68.1 18.9 67 15L66.9 14.4L49.6 14.3C40.1 14.3 32.4 14.3 32.4 14.4C32.4 14.4 32.7 14.8 33.1 15.4C34.1 16.6 36.4 19.5 37.3 20.7C37.6 21.1 38.1 21.8 38.3 22C38.6 22.3 39.1 23 39.5 23.5C39.9 24.1 40.4 24.7 40.5 24.9C40.7 25.1 41.4 26 42 26.8C42.7 27.6 43.5 28.6 43.9 29.2C44.3 29.7 45 30.6 45.5 31.2C45.9 31.8 46.8 32.9 47.3 33.5C48.6 35.2 50 37.1 51.1 38.5C51.6 39 52.3 40 52.7 40.5C53.1 41 54 42.2 54.7 43C55.4 43.9 56.1 44.9 56.4 45.2C56.6 45.5 57 46.1 57.3 46.4C57.5 46.7 58.2 47.6 58.9 48.5C60.3 50.4 60.3 50 58.8 51.6C58.2 52.3 57.5 53.1 57.2 53.5C56.9 53.8 55.6 55.3 54.2 56.9C52 59.4 50.2 61.4 47.4 64.7C47 65.2 46.2 66 45.8 66.5C45.3 67 44.8 67.6 44.6 67.9C44.4 68.1 43.8 68.8 43.3 69.3C42.9 69.8 42.2 70.5 41.8 70.9C41.1 71.8 39.5 73.6 36.2 77.3C33.5 80.4 33.2 80.8 32.1 82C31.6 82.6 30.9 83.4 30.4 83.9C28.8 85.8 28.4 86.2 28.4 86.3C28.4 86.5 32.2 86.5 51.9 86.5C71.8 86.5 73.5 86.5 75 86.2C77.4 85.6 79.8 84.1 82.3 81.7C83.6 80.4 84.3 79.6 85.9 77.5L86.8 76.3L89.7 76.3C91.3 76.2 92.7 76.2 92.9 76.3C93.2 76.3 93.2 76.4 92.5 79.9C92.2 81.5 91.8 83.6 91.6 84.5C91.5 85.4 91.2 86.6 91.1 87.2C91 87.8 90.8 88.8 90.7 89.5C90.5 90.1 90.2 91.9 89.8 93.6C89.5 95.3 89.2 97.1 89.1 97.6C88.8 99 88.6 99.8 88.5 99.9C88.4 99.9 21.1 100 9.6 99.9Z"/><path class="logo-crumbs" d="M90.1 22C89.2 21.2 89.1 20.2 89.9 19.4C90.3 18.9 90.7 18.8 91.3 18.8C91.8 18.8 91.9 18.8 92.4 19.3C93.2 20.2 93.2 20.9 92.3 21.6C91.3 22.4 90.7 22.6 90.1 22ZM94.6 13.8C93.7 13.2 93.3 12.2 93.8 11.3C94.3 10.2 95 9.7 96.2 9.7C97.1 9.7 97.4 9.9 97.9 10.9C98.5 12.1 98.4 12.7 97.7 13.3C96.7 14.1 95.4 14.3 94.6 13.8ZM85.5 9.8C85.1 9.7 84.8 9.5 84.2 8.9C83.3 8.2 83 7.9 82.7 7.1C82.2 6.3 82.2 5.7 82.6 4.6C83.3 2.7 83.7 2.4 86.2 1.5C87 1.2 88.5 1.7 89.8 2.9C90.9 3.8 90.9 5.5 89.9 7.4C89.1 8.8 86.7 10.2 85.5 9.8Z"/></svg>
+    <h1 id="title">La Khôllation</h1>
+  </div>
   <p class="sub">Choisis tes produits, commande, puis paie à la livraison (espèces ou en Wero).</p>
 </header>
+
 <main>
-<a class="insta" href="https://www.instagram.com/khollation" target="_blank" rel="noopener">
-  <span class="insta-ico"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="#fff" stroke="none"/></svg></span>
-  <span class="insta-txt"><strong>@khollation</strong><small>Nouveautés et promos en direct</small></span>
-  <span class="insta-btn">Suivre</span>
-</a>
-<div id="announce" class="announce" hidden></div>
-<div id="shopstatus" class="status" role="status"></div>
-<div id="list" aria-live="polite">Chargement…</div>
+  <div id="shopstatus" class="status" role="status"></div>
+  <div id="announce" class="announce" hidden></div>
+
+  <button id="myorder" class="myorder" type="button" hidden>
+    <span class="myorder-ico" aria-hidden="true">🧾</span>
+    <span class="myorder-txt"><strong id="myorder-title"></strong><small id="myorder-sub"></small></span>
+    <span class="myorder-go">Voir</span>
+  </button>
+
+  <a class="insta" href="https://www.instagram.com/khollation" target="_blank" rel="noopener">
+    <span class="insta-ico"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="#fff" stroke="none"/></svg></span>
+    <span class="insta-txt"><strong>@khollation</strong><small>Nouveautés et promos en direct</small></span>
+    <span class="insta-btn">Suivre</span>
+  </a>
+
+  <nav id="cats" class="cats" aria-label="Catégories" hidden></nav>
+
+  <div id="list" class="list" aria-busy="true">
+    <div class="skeleton" aria-hidden="true"></div>
+    <div class="skeleton" aria-hidden="true"></div>
+    <div class="skeleton" aria-hidden="true"></div>
+    <div class="skeleton" aria-hidden="true"></div>
+    <p class="sr">Chargement des produits…</p>
+  </div>
+
+  <aside class="install" data-install-card hidden>
+    <img src="icons/icon-192.png" alt="" width="44" height="44">
+    <span class="install-txt"><strong>Installe l'appli</strong><small>Commande plus vite depuis ton écran d'accueil</small></span>
+    <button class="btn sm" type="button" data-install>Installer</button>
+    <button class="icon-btn sm" type="button" data-install-dismiss aria-label="Masquer">✕</button>
+  </aside>
 </main>
 
-<div class="bar"><div><strong id="count">0 article</strong> · <span id="total">0,00 €</span></div><button class="btn" id="open" disabled>Commander</button></div>
+<footer class="foot">
+  <button class="linkish" type="button" data-install data-install-link hidden>Installer l'application</button>
+  <a href="admin.html">Espace admin</a>
+</footer>
 
-<dialog id="dlg">
-  <form id="form">
-    <h2 style="margin-top:0">Ta commande</h2>
-    <div id="recap"></div>
-    <label for="name">Prénom</label><input id="name" name="name" type="text" maxlength="30" required>
-    <label for="room">Chambre</label><input id="room" name="room" type="text" maxlength="10" required>
-    <label for="time">Heure de livraison souhaitée</label><input id="time" name="time" type="time" required>
+<div class="bar">
+  <div class="bar-info" aria-live="polite"><strong id="count">0 article</strong><span id="total">0,00 €</span></div>
+  <button class="btn" id="open" type="button" disabled>Commander</button>
+</div>
+
+<dialog id="dlg" class="sheet" aria-labelledby="dlg-title">
+  <form id="form" class="sheet-body">
+    <h2 id="dlg-title">Ta commande</h2>
+    <div id="recap" class="recap"></div>
+    <div class="row2">
+      <div><label for="name">Prénom</label><input id="name" name="name" type="text" maxlength="30" required autocomplete="given-name" autocapitalize="words"></div>
+      <div><label for="room">Chambre</label><input id="room" name="room" type="text" maxlength="10" required autocomplete="off"></div>
+    </div>
+    <label for="time">Heure de livraison souhaitée</label>
+    <div id="quick" class="chips" role="group" aria-label="Raccourcis pour l'heure de livraison"></div>
+    <input id="time" name="time" type="time" required>
     <p class="note">Indicatif : il peut y avoir un peu de retard.</p>
-    <label for="comment">Commentaire (facultatif)</label><textarea id="comment" name="comment" maxlength="200" rows="2" placeholder="Une précision ?"></textarea>    
-    <div class="radios"><label><input type="radio" name="payment" value="wero"> Wero : je scanne le QR code à la livraison</label><label><input type="radio" name="payment" value="especes" checked> Je paie en espèces</label></div>
+    <label for="comment">Commentaire <span class="opt">(facultatif)</span></label>
+    <textarea id="comment" name="comment" maxlength="200" rows="2" placeholder="Une précision ?"></textarea>
+    <fieldset class="radios">
+      <legend>Paiement à la livraison</legend>
+      <label><input type="radio" name="payment" value="wero"> <span>Wero : je scanne le QR code à la livraison</span></label>
+      <label><input type="radio" name="payment" value="especes" checked> <span>Je paie en espèces</span></label>
+    </fieldset>
     <p class="msg" id="err" role="alert"></p>
-    <div style="display:flex;gap:.5rem;justify-content:flex-end"><button type="button" class="btn alt" id="cancel">Retour</button><button class="btn" id="send">Envoyer la commande</button></div>
+    <div class="actions"><button type="button" class="btn alt" id="cancel">Retour</button><button class="btn" id="send">Envoyer la commande</button></div>
   </form>
-  <div id="done" hidden></div>
+  <div id="done" class="sheet-body" hidden></div>
 </dialog>
 
-<script type="module">
-import { db, SHOP, esc, eur, CATEGORIES, shopStatus, toMin, LAST_DELIVERY } from "./config.js";
-import { collection, onSnapshot, serverTimestamp, query, orderBy, doc, runTransaction } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-
-const $ = s => document.querySelector(s);
-let products = [], cart = {};
-
-// Notification push sur ton iPhone (app ntfy) à chaque nouvelle commande
-const NTFY_TOPIC = "khollation-13a10g";
-function notifyAdmin(n, total, time) {
-  fetch("https://ntfy.sh/", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      topic: NTFY_TOPIC,
-      title: "Nouvelle commande 🛎️",
-      message: `${n} article${n > 1 ? "s" : ""} · ${eur(total)} · livraison vers ${time}`,
-      priority: 4,
-      tags: ["shopping_cart"],
-      click: new URL("admin.html", location.href).href
-    })
-  }).catch(() => {});
-}
-
-$("#title").textContent = SHOP.name;
-// Thème clair / sombre
-const themeBtn = $("#theme");
-function applyTheme(t) {
-  document.documentElement.dataset.theme = t;
-  themeBtn.textContent = t === "dark" ? "☀️" : "🌙";
-  themeBtn.setAttribute("aria-label", t === "dark" ? "Passer au thème clair" : "Passer au thème sombre");
-}
-applyTheme(document.documentElement.dataset.theme || "light");
-themeBtn.onclick = () => {
-  const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-  applyTheme(t);
-  try { localStorage.setItem("theme", t); } catch {}
-};
-// Ouverture / fermeture
-let settings = null, shop = shopStatus(null);
-function syncOpen() {
-  const n = lines().reduce((s, i) => s + i.qty, 0);
-  $("#open").disabled = n === 0 || !shop.open;
-  $("#open").textContent = shop.open ? "Commander" : "Fermé";
-}
-function refreshShop() {
-  shop = shopStatus(settings);
-  const el = $("#shopstatus");
-  el.textContent = (shop.open ? "🟢 " : "🔴 ") + shop.text;
-  el.className = "status " + (shop.open ? "open" : "closed");
-  syncOpen();
-}
-onSnapshot(doc(db, "settings", "shop"), s => { settings = s.exists() ? s.data() : null; refreshShop(); }, () => refreshShop());
-setInterval(refreshShop, 30000);
-// Bannière d'annonce
-onSnapshot(doc(db, "settings", "announce"), s => {
-  const d = s.exists() ? s.data() : null, el = $("#announce");
-  el.hidden = !(d && d.on && d.text);
-  el.textContent = d && d.text ? "📣 " + d.text : "";
-}, () => {});
-
-try { $("#name").value = localStorage.getItem("snack_name") || ""; $("#room").value = localStorage.getItem("snack_room") || ""; } catch {}
-
-onSnapshot(query(collection(db, "products"), orderBy("name")), snap => {
-  products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  for (const id in cart) {
-    const p = products.find(x => x.id === id);
-    if (!p || p.stock < 1) delete cart[id]; else cart[id] = Math.min(cart[id], p.stock);
-  }
-  render();
-}, () => { $("#list").textContent = "Impossible de charger les produits. Recharge la page dans un instant."; });
-
-function lines() {
-  return Object.entries(cart).filter(([, q]) => q > 0).map(([id, qty]) => {
-    const p = products.find(x => x.id === id);
-    return { id, name: p.name, priceCents: p.priceCents, qty };
-  });
-}
-const totalCents = () => lines().reduce((s, i) => s + i.priceCents * i.qty, 0);
-
-function itemHtml(p) {
-  const q = cart[p.id] || 0, out = p.stock < 1;
-  return `<div class="item">
-      <div class="emoji">${p.image ? `<img class="pimg" src="${esc(p.image)}" alt="">` : esc(p.emoji || "🥤")}</div>
-      <div><div class="name">${esc(p.name)}${p.badge === "new" ? '<span class="badge new">Nouveau</span>' : p.badge === "promo" ? '<span class="badge promo">Promo</span>' : ""}</div><div class="stock ${p.stock <= 3 ? "low" : ""}">${out ? "Épuisé" : p.stock + " en stock"}</div></div>
-      <div class="right"><span class="price">${eur(p.priceCents)}</span>
-        <div class="step">${out ? "" : `<button data-id="${p.id}" data-d="-1" ${q ? "" : "disabled"} aria-label="Retirer ${esc(p.name)}">−</button><span>${q}</span><button data-id="${p.id}" data-d="1" ${q >= p.stock ? "disabled" : ""} aria-label="Ajouter ${esc(p.name)}">+</button>`}</div>
-      </div></div>`;
-}
-
-function render() {
-  const groups = [...CATEGORIES, "Autres"]
-    .map(c => ({ c, list: products.filter(p => (CATEGORIES.includes(p.category) ? p.category : "Autres") === c) }))
-    .filter(g => g.list.length);
-  $("#list").innerHTML = groups.length
-    ? groups.map(g => `<h2 class="cat">${esc(g.c)}</h2>` + g.list.map(itemHtml).join("")).join("")
-    : "<p>Aucun produit pour le moment, repasse bientôt.</p>";
-  const n = lines().reduce((s, i) => s + i.qty, 0);
-  $("#count").textContent = n + (n > 1 ? " articles" : " article");
-  $("#total").textContent = eur(totalCents());
-  syncOpen();
-}
-
-$("#list").addEventListener("click", e => {
-  const b = e.target.closest("button[data-id]"); if (!b) return;
-  const id = b.dataset.id, p = products.find(x => x.id === id);
-  cart[id] = Math.max(0, Math.min(p.stock, (cart[id] || 0) + Number(b.dataset.d)));
-  render();
-});
-
-$("#open").onclick = () => {
-  $("#recap").innerHTML = "<ul>" + lines().map(i => `<li>${i.qty} × ${esc(i.name)}</li>`).join("") + `</ul><p><strong>Total : ${eur(totalCents())}</strong></p>`;
-  $("#err").textContent = ""; $("#form").hidden = false; $("#done").hidden = true;
-  const now = new Date(); $("#time").min = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0"); $("#time").max = LAST_DELIVERY;  
-  $("#dlg").showModal();
-};
-$("#cancel").onclick = () => $("#dlg").close();
-
-$("#form").onsubmit = async e => {
-  e.preventDefault();
-  const f = new FormData(e.target), items = lines(), total = totalCents();
-  const name = f.get("name").trim(), room = f.get("room").trim(), payment = f.get("payment");
-  const deliveryTime = f.get("time"), comment = f.get("comment").trim();
-  const nowD = new Date();
-  if (!shopStatus(settings).open) { $("#err").textContent = "La boutique est fermée pour le moment."; return; }
-  if (toMin(deliveryTime) < nowD.getHours() * 60 + nowD.getMinutes() || toMin(deliveryTime) > toMin(LAST_DELIVERY)) { $("#err").textContent = "Choisis une heure de livraison entre maintenant et " + LAST_DELIVERY + "."; return; }  
-  $("#send").disabled = true;
-  try {
-    await runTransaction(db, async tx => {
-      const refs = items.map(i => doc(db, "products", i.id));
-      const snaps = await Promise.all(refs.map(r => tx.get(r)));
-      snaps.forEach((s, k) => {
-        if (!s.exists() || s.data().stock < items[k].qty) throw new Error("STOCK:" + items[k].name);
-      });
-      snaps.forEach((s, k) => tx.update(refs[k], { stock: s.data().stock - items[k].qty }));
-      tx.set(doc(collection(db, "orders")), { name, room, payment, items, totalCents: total, status: "nouvelle", paid: false, deliveryTime, comment, createdAt: serverTimestamp() });
-    });
-    try { localStorage.setItem("snack_name", name); localStorage.setItem("snack_room", room); } catch {}
-    notifyAdmin(items.reduce((s, i) => s + i.qty, 0), total, deliveryTime);
-    cart = {}; render();
-    $("#form").hidden = true; $("#done").hidden = false;
-    $("#done").innerHTML = `<h2 style="margin-top:0">Commande envoyée ✅</h2><p>Total à payer : <strong>${eur(total)}</strong></p><p>${payment === "wero" ? "Paiement en Wero : à la livraison, scanne le QR code Wero qui te sera présenté. Garde ton application prête." : "Prépare ton paiement en espèces, de préférence l'appoint."}</p><p>Livraison dans ta chambre (${esc(room)}) vers <strong>${esc(deliveryTime)}</strong>, avec un éventuel petit retard.</p><button class="btn" id="ok">Fermer</button>`;
-    $("#ok").onclick = () => $("#dlg").close();
-  } catch (err) {
-    $("#err").textContent = String(err.message).startsWith("STOCK:")
-      ? "Désolé, « " + err.message.slice(6) + " » vient d'être épuisé ou n'a plus assez de stock. Vérifie ton panier."
-      : "La commande n'est pas partie. Vérifie ta connexion et réessaie.";
-  }
-  $("#send").disabled = false;
-};
-</script>
+<script type="module" src="js/shop.js"></script>
 </body>
 </html>

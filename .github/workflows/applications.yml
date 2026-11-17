@@ -1,0 +1,160 @@
+# Construit les applications natives de La Khôllation à chaque modification du dossier native/
+# (ou à la demande : onglet « Actions » → « Applications Android et iOS » → « Run workflow »).
+#
+# - Android : un fichier khollation.apk, publié sur la page « Releases » du dépôt
+#   (lien direct : https://github.com/khollation/commande/releases/download/android/khollation.apk).
+# - iOS : vérifie que l'application compile et fournit un .ipa non signé (voir native/README.md).
+#
+# Les applications affichent le site en ligne : une modification du site (produits, textes,
+# fonctionnalités) apparaît dans l'application sans la reconstruire.
+name: Applications Android et iOS
+
+on:
+  push:
+    branches: [main, "claude/**"]
+    paths: ["native/**", ".github/workflows/applications.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: applications-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    name: Android (APK)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: native
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: native/package-lock.json
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Installer Capacitor
+        run: npm ci
+
+      - name: Créer le projet Android (icônes et écran de démarrage compris)
+        run: |
+          npx cap add android
+          npx capacitor-assets generate --android
+
+      - name: Numéro de version
+        run: |
+          sed -i "s/versionCode 1$/versionCode ${{ github.run_number }}/; s/versionName \"1.0\"/versionName \"1.${{ github.run_number }}\"/" android/app/build.gradle
+          grep -E "versionCode|versionName" android/app/build.gradle
+
+      # Sans configuration, l'APK est signé avec une clé de test créée à chaque construction.
+      # Pour que les mises à jour s'installent par-dessus l'ancienne version, ajoute une clé
+      # permanente dans les secrets du dépôt (voir native/README.md).
+      - name: Compiler l'APK
+        working-directory: native/android
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASSWORD" ]; then
+            ./gradlew --no-daemon assembleRelease
+            TOOLS="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            "$TOOLS/zipalign" -p -f 4 app/build/outputs/apk/release/app-release-unsigned.apk "$RUNNER_TEMP/aligned.apk"
+            "$TOOLS/apksigner" sign --ks "$RUNNER_TEMP/release.jks" --ks-pass env:KEYSTORE_PASSWORD --out ../khollation.apk "$RUNNER_TEMP/aligned.apk"
+            "$TOOLS/apksigner" verify ../khollation.apk
+            rm -f "$RUNNER_TEMP/release.jks"
+            echo "Signature : clé permanente du dépôt" >> "$GITHUB_STEP_SUMMARY"
+          else
+            ./gradlew --no-daemon assembleDebug
+            cp app/build/outputs/apk/debug/app-debug.apk ../khollation.apk
+            echo "Signature : clé de test (ajoute une clé permanente pour des mises à jour sans désinstaller, voir native/README.md)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          ls -l ../khollation.apk
+
+      - name: Vérifier l'APK
+        run: |
+          TOOLS="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+          BADGING="$("$TOOLS/aapt2" dump badging khollation.apk 2>&1 || true)"
+          echo "$BADGING" | grep -E "^(package|application-label:|application-icon-640|sdkVersion|targetSdkVersion|uses-permission|launchable-activity)" || true
+          "$TOOLS/apksigner" verify --verbose --print-certs khollation.apk 2>&1 | grep -iE "verified using|certificate (DN|SHA-256)" || true
+          CONFIG="$(unzip -p khollation.apk assets/capacitor.config.json)"
+          echo "$CONFIG"
+          echo "$BADGING" | grep -q "package: name='io.github.khollation.commande'"
+          echo "$CONFIG" | grep -q '"url": "https://khollation.github.io/commande/"'
+          unzip -l khollation.apk | grep -q "assets/public/offline.html"
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: khollation-android
+          path: native/khollation.apk
+          if-no-files-found: error
+
+      - name: Publier l'APK (page « Releases »)
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view android >/dev/null 2>&1 || gh release create android --target "$GITHUB_SHA" --title "Application Android" --notes-file release-notes.md --latest
+          gh release upload android khollation.apk --clobber
+          echo "APK publié : https://github.com/${{ github.repository }}/releases/download/android/khollation.apk" >> "$GITHUB_STEP_SUMMARY"
+
+  ios:
+    name: iOS (compilation)
+    runs-on: macos-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: native
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: native/package-lock.json
+
+      - name: Installer Capacitor
+        run: npm ci
+
+      - name: Créer le projet iOS (icônes et écran de démarrage compris)
+        run: |
+          npx cap add ios
+          npx capacitor-assets generate --ios
+
+      - name: Compiler pour iPhone (sans signature)
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} build | tail -40
+          test -d build/Build/Products/Release-iphoneos/App.app
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/App.app Payload/
+          zip -qry khollation-ios-non-signee.ipa Payload
+          ls -l khollation-ios-non-signee.ipa
+
+      - name: Vérifier l'application iOS
+        run: |
+          plutil -p Payload/App.app/Info.plist | grep -E "CFBundle(Identifier|DisplayName|ShortVersionString|Version|IconName)|MinimumOSVersion"
+          cat Payload/App.app/capacitor.config.json
+          grep -q '"url": "https://khollation.github.io/commande/"' Payload/App.app/capacitor.config.json
+          ls Payload/App.app | grep -iE "AppIcon|Assets.car|public" 
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: khollation-ios-non-signee
+          path: native/khollation-ios-non-signee.ipa
+          if-no-files-found: error

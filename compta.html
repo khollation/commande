@@ -2,32 +2,53 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <title>Compta</title>
-<script>try{var t=localStorage.getItem("theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}</script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#F5F7FA">
+<link rel="manifest" href="admin.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/admin-192.png">
+<link rel="apple-touch-icon" href="icons/admin-apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kh. Admin">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preload" href="fonts/bricolage-grotesque-latin.woff2" as="font" type="font/woff2" crossorigin>
+<script>try{var d=document.documentElement,t=localStorage.getItem("theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");d.dataset.theme=t;if(t==="dark")document.querySelector('meta[name="theme-color"]').content="#0E1626";var s=localStorage.getItem("season");if(s)d.dataset.season=s}catch(e){}</script>
 <link rel="stylesheet" href="style.css">
-<style>
-.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem}
-.kpi{background:var(--card);border-radius:1rem;padding:.8rem;box-shadow:var(--shadow)}
-.kpi small{display:block;color:var(--mute)}
-.kpi strong{font-size:1.35rem}
-table{width:100%;border-collapse:collapse;background:var(--card);border-radius:.8rem;overflow:hidden;box-shadow:var(--shadow)}
-td,th{padding:.5rem .7rem;text-align:left;border-bottom:1px solid var(--line)}
-td.n,th.n{text-align:right}
-.row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
-.row input,.row select{width:auto}
-.erow{display:flex;justify-content:space-between;gap:.5rem;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--line)}
-</style>
+<link rel="modulepreload" href="config.js">
+<link rel="modulepreload" href="js/core.js">
+<link rel="modulepreload" href="js/ui.js">
+<link rel="modulepreload" href="js/pwa.js">
+<link rel="modulepreload" href="js/firebase.js">
+<link rel="modulepreload" href="js/auth.js">
+<link rel="modulepreload" href="vendor/firebase/firebase-app.js">
+<link rel="modulepreload" href="vendor/firebase/firebase-firestore.js">
+<link rel="modulepreload" href="vendor/firebase/firebase-auth.js">
 </head>
-<body style="padding-bottom:2rem">
-<header><h1>Compta</h1><p class="sub"><a href="admin.html" style="color:inherit">← Retour à l'admin</a></p></header>
+<body class="admin compta">
+<header class="hero">
+  <button id="theme" class="icon-btn theme-btn" type="button" aria-label="Changer de thème">
+  <svg class="i-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+  <svg class="i-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+</button>
+  <div class="brand"><img class="app-ico" src="icons/admin-192.png" alt="" width="38" height="38"><h1>Compta</h1></div>
+</header>
+
 <main>
-  <p id="need" class="msg">Connecte-toi d'abord sur <a href="admin.html">admin.html</a>, puis reviens ici.</p>
+  <p id="boot" class="note boot">Chargement…</p>
+
+  <form id="login" class="card login" hidden>
+    <h2>Connexion</h2>
+    <label for="em">E-mail</label><input id="em" type="email" required autocomplete="username">
+    <label for="pw">Mot de passe</label><input id="pw" type="password" required autocomplete="current-password">
+    <p class="msg" id="lerr" role="alert"></p>
+    <div class="actions"><button class="btn">Se connecter</button></div>
+  </form>
+
   <div id="panel" hidden>
-    <div class="row">
+    <!-- Les deux filtres s'appliquent à tout ce qui est affiché en dessous -->
+    <div class="filters">
       <select id="period" aria-label="Période">
         <option value="1">Aujourd'hui</option>
         <option value="7" selected>7 derniers jours</option>
@@ -40,113 +61,46 @@ td.n,th.n{text-align:right}
       </select>
     </div>
 
-    <h2>Résumé</h2>
-    <div class="kpis" id="kpis"></div>
+    <div id="report">
+      <h2>Résumé</h2>
+      <div class="kpis" id="kpis"></div>
+      <div class="card split" id="cash"></div>
 
-    <h2>Produits les plus vendus</h2>
-    <div id="top"></div>
+      <h2 id="byh">Ventes par jour</h2>
+      <figure class="card chart" id="chart"></figure>
+      <div id="byday"></div>
 
-    <h2 id="byh">Ventes</h2>
-    <div id="byday"></div>
+      <h2>Produits les plus vendus</h2>
+      <div id="top"></div>
+    </div>
 
     <h2>Dépenses</h2>
-    <form id="addx" class="row">
-      <input id="xd" type="date" required aria-label="Date">
-      <input id="xl" type="text" placeholder="Achat (ex : cartons d'Oasis)" required style="flex:1;min-width:9rem" aria-label="Libellé">
-      <input id="xa" type="number" step="0.01" min="0" placeholder="Montant €" required style="width:7rem" aria-label="Montant en euros">
-      <button class="btn sm">Ajouter</button>
+    <form id="addx" class="card xform">
+      <div class="row2 even">
+        <div><label for="xd">Date</label><input id="xd" type="date" required></div>
+        <div><label for="xa">Montant (€)</label><input id="xa" type="number" inputmode="decimal" step="0.01" min="0" placeholder="12,50" required></div>
+      </div>
+      <label for="xl">Achat</label><input id="xl" type="text" maxlength="80" placeholder="Ex : cartons d'Oasis" required>
+      <div class="actions"><button class="btn sm">Ajouter la dépense</button></div>
     </form>
     <div id="xlist"></div>
 
     <h2>Export</h2>
-    <div class="row">
-      <button class="btn sm" id="ex-o">Commandes (CSV)</button>
-      <button class="btn sm" id="ex-x">Dépenses (CSV)</button>
+    <div class="chips">
+      <button class="btn sm" type="button" id="ex-o">Commandes (CSV)</button>
+      <button class="btn sm" type="button" id="ex-x">Dépenses (CSV)</button>
     </div>
     <p class="note">Les exports suivent la période choisie. Ils s'ouvrent dans Excel ou Google Sheets.</p>
   </div>
 </main>
 
-<script type="module">
-import { db, auth, esc, eur } from "./config.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import { collection, onSnapshot, query, orderBy, limit, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+<nav id="tabs" class="tabbar" aria-label="Sections de l'admin" hidden>
+  <a href="admin.html#commandes" data-tab="commandes"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span>Commandes</span><b id="n-new" class="pill" hidden></b></a>
+  <a href="admin.html#produits" data-tab="produits"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 8-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg><span>Produits</span></a>
+  <a href="admin.html#boutique" data-tab="boutique"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 9 1-5h14l1 5"/><path d="M4 9a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0A2.7 2.7 0 0 0 20 9"/><path d="M5 12v8h14v-8"/><path d="M10 20v-5h4v5"/></svg><span>Boutique</span></a>
+  <a href="compta.html" aria-current="page"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 20h20"/><path d="M6 20v-8M12 20V5M18 20v-5"/></svg><span>Compta</span></a>
+</nav>
 
-const $ = s => document.querySelector(s);
-const key = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-const fr = k => k.split("-").reverse().join("/");
-const num = c => (c / 100).toFixed(2).replace(".", ",");
-let orders = [], expenses = [], unsubs = [];
-$("#xd").value = key(new Date());
-
-onAuthStateChanged(auth, user => {
-  unsubs.forEach(u => u()); unsubs = [];
-  $("#panel").hidden = !user; $("#need").hidden = !!user;
-  if (!user) return;
-  unsubs.push(onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(2000)), s => {
-    orders = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(o => o.createdAt); render();
-  }));
-  unsubs.push(onSnapshot(query(collection(db, "expenses"), orderBy("date", "desc")), s => {
-    expenses = s.docs.map(d => ({ id: d.id, ...d.data() })); render();
-  }));
-});
-
-function since() {
-  const n = +$("#period").value; if (!n) return "";
-  const d = new Date(); d.setDate(d.getDate() - (n - 1)); return key(d);
-}
-const inOrders = o => key(o.createdAt.toDate()) >= since();
-const sum = (a, f) => a.reduce((t, x) => t + f(x), 0);
-const table = (h, rows) => rows.length
-  ? `<table><tr>${h.map((x, i) => `<th class="${i ? "n" : ""}">${x}</th>`).join("")}</tr>${rows.map(r => `<tr>${r.map((x, i) => `<td class="${i ? "n" : ""}">${x}</td>`).join("")}</tr>`).join("")}</table>`
-  : "<p class='note'>Aucune donnée sur cette période.</p>";
-
-function render() {
-  const s = since();
-  const os = orders.filter(o => o.status !== "annulée" && inOrders(o));
-  const xs = expenses.filter(x => x.date >= s);
-  const ca = sum(os, o => o.totalCents), paid = sum(os.filter(o => o.paid), o => o.totalCents), dep = sum(xs, x => x.amountCents);
-
-  $("#kpis").innerHTML = [["Chiffre d'affaires", eur(ca)], ["Pas encore encaissé", eur(ca - paid)], ["Dépenses", eur(dep)], ["Bénéfice", eur(paid - dep)], ["Commandes", os.length]]
-    .map(([l, v]) => `<div class="kpi"><small>${l}</small><strong>${v}</strong></div>`).join("");
-
-  const p = {};
-  os.forEach(o => o.items.forEach(i => { const r = p[i.name] ||= { q: 0, c: 0 }; r.q += i.qty; r.c += i.qty * i.priceCents; }));
-  $("#top").innerHTML = table(["Produit", "Qté", "CA"], Object.entries(p).sort((a, b) => b[1].q - a[1].q).map(([n, r]) => [esc(n), r.q, eur(r.c)]));
-
-  const week = $("#group").value === "week", days = {};
-  const monday = d => { const x = new Date(d); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return key(x); };
-  os.forEach(o => { const d = o.createdAt.toDate(), k = week ? monday(d) : key(d); const r = days[k] ||= { n: 0, c: 0 }; r.n++; r.c += o.totalCents; });
-  $("#byh").textContent = week ? "Ventes par semaine (début le lundi)" : "Ventes par jour";
-  $("#byday").innerHTML = table([week ? "Semaine du" : "Jour", "Commandes", "CA"], Object.keys(days).sort().reverse().map(k => [fr(k), days[k].n, eur(days[k].c)]));
-
-  $("#xlist").innerHTML = xs.map(x => `<div class="erow"><span>${fr(x.date)} · ${esc(x.label)}</span><span><strong>${eur(x.amountCents)}</strong> <button class="btn sm red" data-del="${x.id}" aria-label="Supprimer cette dépense">✕</button></span></div>`).join("") || "<p class='note'>Aucune dépense sur cette période.</p>";
-}
-$("#period").onchange = $("#group").onchange = render;
-
-$("#addx").onsubmit = async e => {
-  e.preventDefault();
-  try {
-    await addDoc(collection(db, "expenses"), { date: $("#xd").value, label: $("#xl").value.trim(), amountCents: Math.round($("#xa").value * 100) });
-    $("#xl").value = ""; $("#xa").value = "";
-  } catch (err) { alert("Ajout impossible : " + err.message); }
-};
-$("#xlist").onclick = async e => {
-  const b = e.target.closest("[data-del]");
-  if (!b || !confirm("Supprimer cette dépense ?")) return;
-  try { await deleteDoc(doc(db, "expenses", b.dataset.del)); } catch (err) { alert("Suppression impossible : " + err.message); }
-};
-
-function csv(name, rows) {
-  const txt = "\ufeff" + rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(";")).join("\r\n");
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([txt], { type: "text/csv;charset=utf-8" }));
-  a.download = name; a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
-$("#ex-o").onclick = () => csv("commandes.csv", [["Date", "Heure", "Statut", "Payée", "Paiement", "Produits", "Total (€)"],
-  ...orders.filter(inOrders).map(o => { const d = o.createdAt.toDate(); return [key(d), d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }), o.status, o.paid ? "oui" : "non", o.payment, o.items.map(i => i.qty + " x " + i.name).join(" ; "), num(o.totalCents)]; })]);
-$("#ex-x").onclick = () => csv("depenses.csv", [["Date", "Libellé", "Montant (€)"], ...expenses.filter(x => x.date >= since()).map(x => [x.date, x.label, num(x.amountCents)])]);
-</script>
+<script type="module" src="js/compta.js"></script>
 </body>
 </html>

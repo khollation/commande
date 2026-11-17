@@ -1,0 +1,13 @@
+{
+  "name": "khollation-tests",
+  "private": true,
+  "description": "Tests automatiques du site : vrai navigateur (Chromium) et émulateurs Firebase, sans toucher à la vraie base",
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore,auth --project demo-khollation \"node --test --test-concurrency=1 core.test.mjs rules.test.cjs shop.test.cjs admin.test.cjs compta.test.cjs pwa.test.cjs\"",
+    "test:regles": "firebase emulators:exec --only firestore,auth --project demo-khollation \"KH_RULES=1 node --test --test-concurrency=1 shop.test.cjs admin.test.cjs compta.test.cjs pwa.test.cjs\""
+  },
+  "devDependencies": {
+    "firebase-tools": "15.36.0",
+    "playwright": "1.63.0"
+  }
+}
