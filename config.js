@@ -39,6 +39,11 @@ export const NTFY_TOPIC = "khollation-13a10g";
 // Une notification est aussi envoyée quand un produit tombe à zéro. Mets 0 pour désactiver les alertes.
 export const LOW_STOCK = 3;
 
+// ---------- Application Android ----------
+// Lien de téléchargement de l'application Android (fichier APK), proposé dans le mode d'emploi
+// d'installation sur les téléphones Android. Mets "" pour ne pas le proposer.
+export const ANDROID_APK = "https://github.com/khollation/commande/releases/download/android/khollation.apk";
+
 // ---------- Thème de saison ----------
 // "auto"      : suit le calendrier (Halloween fin octobre, Noël en décembre, été fin juin)
 // "aucun"     : toujours les couleurs normales

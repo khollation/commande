@@ -1,6 +1,7 @@
 // Application installable : enregistre le service worker (sw.js) et propose l'installation
 // sur l'écran d'accueil, avec le bon mode d'emploi selon l'appareil.
 import { $, $$, store, closeOnBackdrop } from "./ui.js";
+import { ANDROID_APK } from "../config.js";
 
 const DISMISS_KEY = "kh_install_dismissed";
 const DISMISS_DAYS = 30;
@@ -45,7 +46,8 @@ function helpHtml() {
   if (isAndroid) {
     return `<ol class="steps"><li>Ouvre le menu <strong>⋮</strong> de ton navigateur.</li>
       <li>Choisis <strong>« Installer l'application »</strong> ou <strong>« Ajouter à l'écran d'accueil »</strong>.</li>
-      <li>Valide : l'icône apparaît avec tes autres applis.</li></ol>`;
+      <li>Valide : l'icône apparaît avec tes autres applis.</li></ol>
+      ${ANDROID_APK ? `<p class="note">Tu préfères un fichier à installer ? <a href="${ANDROID_APK}" rel="noopener">Télécharger l'application Android (APK)</a>, puis ouvre-le et autorise l'installation.</p>` : ""}`;
   }
   return `<ol class="steps"><li>Dans la barre d'adresse, clique sur l'icône d'installation (ou ouvre le menu du navigateur).</li>
     <li>Choisis <strong>« Installer ${appName} »</strong>.</li></ol>

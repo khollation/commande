@@ -143,6 +143,15 @@ test("Android / Chrome : le bouton « Installer » déclenche l'installation pro
   assert.equal(await page.locator("dialog.sheet:not(#dlg)").count(), 0, "pas de mode d'emploi : le navigateur s'en charge");
 });
 
+test("Android sans invitation du navigateur : mode d'emploi et lien vers l'application Android", async () => {
+  const { page } = await open({ userAgent: ANDROID.replace("Chrome/141.0.0.0 Mobile Safari/537.36", "Firefox/145.0") });
+  await page.waitForSelector(".item");
+  await page.click("footer [data-install-link]");
+  const help = await text(page, "dialog.sheet:not(#dlg)");
+  assert.ok(help.includes("Installer l'application") && help.includes("Ajouter à l'écran d'accueil"));
+  assert.equal(await page.getAttribute("dialog.sheet:not(#dlg) a", "href"), "https://github.com/khollation/commande/releases/download/android/khollation.apk");
+});
+
 test("ordinateur sans invitation du navigateur : pas d'encart, mais un lien d'aide en bas de page", async () => {
   const { page } = await open({ viewport: { width: 1200, height: 800 } });
   await page.waitForSelector(".item");
