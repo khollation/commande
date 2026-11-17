@@ -1,8 +1,9 @@
 // Petit serveur statique qui imite GitHub Pages : le site est servi sous /commande/,
-// avec les mêmes en-têtes de cache (max-age=600 + revalidation conditionnelle).
+// avec les mêmes en-têtes de cache (max-age=600 + revalidation par ETag).
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
+const crypto = require("node:crypto");
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -35,15 +36,15 @@ function startServer({ root, base = "/commande/", port = 0, transform = null } =
         file = path.join(file, "index.html");
         try { st = fs.statSync(file); } catch { res.writeHead(404).end("Not found"); return; }
       } else if (err) { res.writeHead(404, { "Content-Type": "text/html; charset=utf-8" }).end("<h1>404</h1>"); return; }
-      const lastModified = new Date(Math.floor(st.mtimeMs / 1000) * 1000).toUTCString();
+      let body = fs.readFileSync(file);
+      if (transform) body = transform(path.relative(rootDir, file).split(path.sep).join("/"), body);
+      const etag = '"' + crypto.createHash("sha1").update(body).digest("hex").slice(0, 16) + '"';
       const headers = {
         "Content-Type": MIME[path.extname(file).toLowerCase()] || "application/octet-stream",
         "Cache-Control": "max-age=600",
-        "Last-Modified": lastModified
+        ETag: etag
       };
-      if (req.headers["if-modified-since"] === lastModified) { res.writeHead(304, headers).end(); return; }
-      let body = fs.readFileSync(file);
-      if (transform) body = transform(path.relative(rootDir, file).split(path.sep).join("/"), body);
+      if (req.headers["if-none-match"] === etag) { res.writeHead(304, headers).end(); return; }
       res.writeHead(200, headers);
       res.end(req.method === "HEAD" ? undefined : body);
     });

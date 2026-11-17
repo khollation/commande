@@ -65,7 +65,8 @@ async function assertEmulators() {
 async function startSite({ version = "new", sdkDir = path.join(REPO, "vendor", "firebase") } = {}) {
   await assertEmulators();
   const root = version === "original" ? path.join(REPO, "backup", "2026-11-16-version-originale") : REPO;
-  const transform = transformFor(version);
+  const base = transformFor(version), overrides = new Map();
+  const transform = (rel, buf) => (overrides.has(rel) ? Buffer.from(overrides.get(rel)) : base(rel, buf));
   const server = await startServer({ root, transform });
   const browser = await chromium.launch({ proxy: { server: "http://127.0.0.1:9", bypass: "localhost,127.0.0.1" } });
   const contexts = [];
@@ -99,6 +100,9 @@ async function startSite({ version = "new", sdkDir = path.join(REPO, "vendor", "
 
   return {
     url: server.url, origin: server.origin, browser, newContext, emu,
+    /** Simule la publication d'une nouvelle version d'un fichier du site (chemin relatif, ex. "style.css"). */
+    override: (rel, content) => overrides.set(rel, content),
+    clearOverrides: () => overrides.clear(),
     async close() {
       await Promise.all(contexts.map(c => c.close().catch(() => {})));
       await browser.close();
